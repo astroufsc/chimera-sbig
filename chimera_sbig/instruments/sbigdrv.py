@@ -508,3 +508,8 @@ class SBIGDrv(object):
             return False
 
         return qcsr.status
+
+if __name__ == '__main__':
+    print 'Testing sbigdrv...'
+    s = SBIGDrv()
+    #TODO: ...
