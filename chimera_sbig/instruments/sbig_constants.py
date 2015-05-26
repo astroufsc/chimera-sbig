@@ -577,3 +577,88 @@ class PIXEL_CHANNEL_MODE(Enum):
 class ACTIVE_PIXEL_CHANNEL(Enum):
     PIXEL_CHANNEL_A = 0
     PIXEL_CHANNEL_B = 1
+
+# General Purpose Flags
+
+END_SKIP_DELAY = 0x8000                                                                 #        set in ccd parameter of EndExposure
+                                                                                        # command to skip synchronization
+                                                                                        # delay - Use this to increase the
+                                                                                        # rep rate when taking darks to later
+                                                                                        # be subtracted from SC_LEAVE_SHUTTER
+                                                                                        # exposures such as when tracking and
+                                                                                        # imaging
+
+START_SKIP_VDD = 0x8000                                                                 #
+                                                                                        #        set in ccd parameter of StartExposure
+                                                                                        # command to skip lowering Imaging CCD
+                                                                                        # Vdd during integration. - Use this to
+                                                                                        # increase the rep rate when you don't
+                                                                                        # care about glow in the upper-left
+                                                                                        # corner of the imaging CCD
+                                                                                        #
+
+START_MOTOR_ALWAYS_ON = 0x4000
+                                                                                        #
+                                                                                        #        set in ccd parameter of StartExposure
+                                                                                        # and EndExposure commands to force shutter
+                                                                                        # motor to stay on all the time which reduces
+                                                                                        # delays in Start and End Exposure timing and
+                                                                                        # yields higher image throughput.  Don't
+                                                                                        # do this too often or camera head will
+                                                                                        # heat up
+                                                                                        #
+                                                                                        #
+ABORT_DONT_END = 0x2000
+                                                                                        #
+                                                                                        #        set in ccd parameter of EndExposure
+                                                                                        # command to abort the exposure completely
+                                                                                        # instead of just ending the integration phase
+                                                                                        # for cameras with internal frame buffers
+                                                                                        # like the STX
+
+EXP_WAIT_FOR_TRIGGER_IN = 0x80000000  # set in exposureTime to wait for trigger in pulse
+EXP_SEND_TRIGGER_OUT = 0x40000000  # set in exposureTime to send trigger out Y-
+EXP_LIGHT_CLEAR = 0x20000000  # set to do light clear of the CCD
+EXP_MS_EXPOSURE = 0x10000000  # set to interpret exposure time as milliseconds
+EXP_FAST_READOUT = 0x08000000  # activate the fast readout mode of the STF-8300, etc.
+EXP_DUAL_CHANNEL_MODE = 0x04000000  # activate the dual channel CCD readout mode of the STF-8050
+EXP_TIME_MASK = 0x00FFFFFF  # mask with exposure time to remove flags
+
+# Capabilities Bits - Bit Field Definitions for the capabilitiesBits in the GetCCDInfoResults4 struct.
+
+
+CB_CCD_TYPE_MASK = 0x0001  # mask for CCD type
+CB_CCD_TYPE_FULL_FRAME = 0x0000  # b0=0 is full frame CCD
+CB_CCD_TYPE_FRAME_TRANSFER = 0x0001  # b0=1 is frame transfer CCD
+CB_CCD_ESHUTTER_MASK = 0x0002  # mask for electronic shutter type
+CB_CCD_ESHUTTER_NO = 0x0000  # b1=0 indicates no electronic shutter
+CB_CCD_ESHUTTER_YES = 0x0002  # b1=1 indicates electronic shutter
+CB_CCD_EXT_TRACKER_MASK = 0x0004  # mask for external tracker support
+CB_CCD_EXT_TRACKER_NO = 0x0000  # b2=0 indicates no external tracker support
+CB_CCD_EXT_TRACKER_YES = 0x0004  # b2=1 indicates external tracker support
+CB_CCD_BTDI_MASK = 0x0008  # mask for BTDI support
+CB_CCD_BTDI_NO = 0x0000  # b3=0 indicates no BTDI support
+CB_CCD_BTDI_YES = 0x0008  # b3=1 indicates BTDI support
+CB_AO8_MASK = 0x0010  # mask for AO-8 detected
+CB_AO8_NO = 0x0000  # b4=0 indicates no AO-8 detected
+CB_AO8_YES = 0x0010  # b4=1 indicates AO-8 detected
+CB_FRAME_BUFFER_MASK = 0x0020  # mask for camera with frame buffer
+CB_FRAME_BUFFER_NO = 0x0000  # b5=0 indicates camera without Frame Buffer
+CB_FRAME_BUFFER_YES = 0x0020  # b5=1 indicates camera with Frame Buffer
+CB_REQUIRES_STARTEXP2_MASK = 0x0040  # mask for camera that requires StartExposure2
+CB_REQUIRES_STARTEXP2_NO = 0x0000  # b6=0 indicates camera works with StartExposure
+CB_REQUIRES_STARTEXP2_YES = 0x0040  # b6=1 indicates camera Requires StartExposure2
+
+# Defines
+
+MIN_ST7_EXPOSURE = 12  # Minimum exposure in 1/100ths second
+MIN_ST402_EXPOSURE = 4  # Minimum exposure in 1/100ths second
+MIN_ST3200_EXPOSURE = 9  # Minimum exposure in 1/100ths second
+
+MIN_STF8300_EXPOSURE = 9  # Minimum exposure in 1/100ths second
+MIN_STF8050_EXPOSURE = 1  # Minimum exposure in 1/1000ths second since has E Shutter
+MIN_STF4070_EXPOSURE = 1  # Minimum exposure in 1/1000ths second since has E Shutter
+
+MIN_STX_EXPOSURE = 18  # Minimum exposure in 1/100ths second
+MIN_STT_EXPOSURE = 12  # Minimum exposure in 1/100ths second
+MIN_STU_EXPOSURE = 1  # Minimum exposure in 1/1000ths second since ST-i has E Shutter
