@@ -1,4 +1,7 @@
 import ctypes
+import time
+
+import numpy as np
 
 import sbig_constants
 
@@ -191,75 +194,126 @@ for ccd in sbig_constants.CCD_INFO_REQUEST.CCD_INFO_IMAGING, \
                 cout.readoutInfo[i_mode].width, cout.readoutInfo[i_mode].gain, cout.readoutInfo[i_mode].pixel_width,
                 cout.readoutInfo[i_mode].pixel_height]  # STORE FIRST MODE OF IMAGING CCD FOR EXPOSURE TEST
 
-# print 'GRAB IMAGE - Start Exposure'
-#
-#
-# class StartExposureParams2(Structure):
-#     _fields_ = [('ccd', c_ushort),  # CCD_REQUEST
-#                 ('exposureTime', c_ulong),
-#                 ('abgState', c_ushort),  # ABG_STATE7
-#                 ('openShutter', c_ushort),  # SHUTTER_COMMAND
-#                 ('readoutMode', c_ushort),
-#                 ('top', c_ushort),
-#                 ('left', c_ushort),
-#                 ('height', c_ushort),
-#                 ('width', c_ushort)]
-#
-#
-# cin = StartExposureParams2
-# cout = None
-# udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-# cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING, exposureTime=10,
-#           openShutter=sbig_constants.SHUTTER_COMMAND.SC_OPEN_SHUTTER, readoutMode=0, top=0, left=0,
-#           height=readout_mode[2], width=readout_mode[1])
-# # TODO: 1 - Do I need to tell the camera always the height and width?
-# # TODO: 2 - Check the minimum exposure times. Like sbig_constants.MIN_ST7_EXPOSURE for ST7
-# ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2, byref(cin), cout)
-#
-#
-#
-#
-#
-# # TODO: print 'GRAB IMAGE - End Exposure'
-# print sbig_constants.PAR_COMMAND.CC_END_EXPOSURE
-#
-# # TODO print 'GRAB IMAGE - Start Readout'
-# print sbig_constants.PAR_COMMAND.CC_START_READOUT
-#
-# print 'GRAB IMAGE - Readout lines'
-#
-# img = []
-#
-#
-# class ReadoutLineParams(Structure):
-#     _fields_ = [('ccd', c_ushort),  # CCD_REQUEST
-#                 ('readoutMode', c_ushort),
-#                 ('pixelStart', c_ushort),
-#                 ('pixelLength', c_ushort)]
-#
-#
-# cin = ReadoutLineParams
-# cout = c_ushort * readout_mode[1]  # Array of width pixels
-# udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-# cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING, readoutMode=0, pixelStart=0, pixelLength=readout_mode[1])
-# cout = cout()
-# ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_READOUT_LINE, byref(cin), byref(cout))
-#
-# # TODO print 'GRAB IMAGE - End Readout'
-# print sbig_constants.PAR_COMMAND.CC_END_READOUT
-#
-# print 'Close device'
-# cmd(sbig_constants.PAR_COMMAND.CC_CLOSE_DEVICE, None, None)
-#
-# print 'Close driver'
-# cmd(sbig_constants.PAR_COMMAND.CC_CLOSE_DRIVER, None, None)
+print 'GRAB IMAGE - Start Exposure'
+
+
+class StartExposureParams2(Structure):
+    _fields_ = [('ccd', c_ushort),  # CCD_REQUEST
+                ('exposureTime', c_ulong),
+                ('abgState', c_ushort),  # ABG_STATE7
+                ('openShutter', c_ushort),  # SHUTTER_COMMAND
+                ('readoutMode', c_ushort),
+                ('top', c_ushort),
+                ('left', c_ushort),
+                ('height', c_ushort),
+                ('width', c_ushort)]
+
+
+cin = StartExposureParams2
+cout = None
+udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
+cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING, exposureTime=60 * 100,  # 60 seconds integration
+          openShutter=sbig_constants.SHUTTER_COMMAND.SC_OPEN_SHUTTER, readoutMode=0, top=0, left=0,
+          height=readout_mode[2], width=readout_mode[1])
+# TODO: 1 - Do I need to tell the camera always the height and width?
+# TODO: 2 - Check the minimum exposure times. Like sbig_constants.MIN_ST7_EXPOSURE for ST7
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2, byref(cin), cout)
+
+print 'ret', ret
+
+print 'GRAB IMAGE - Query Command Status'
+
+t0 = time.time()
+status = 2
+while status == 2:
+    class QueryCommandStatusParams(Structure):
+        _fields_ = [('command', c_ushort)]
+
+    class QueryCommandStatusResults(Structure):
+        _fields_ = [('status', c_ushort)]
+
+    cin = QueryCommandStatusParams
+    cout = QueryCommandStatusResults
+    udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
+    cin = cin(command=sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2)
+    cout = cout()
+    ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_QUERY_COMMAND_STATUS, byref(cin), byref(cout))
+    status = cout.status
+    print 'status: %3.2f sec - %s' % (time.time() - t0, status)
+    time.sleep(.5)
+
+print 'GRAB IMAGE - End Exposure'
+
+
+class EndExposureParams(Structure):
+    _fields_ = [('ccd', c_ushort)]
+
+
+cin = EndExposureParams
+cout = None
+udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
+cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING)
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_END_EXPOSURE, byref(cin), cout)
+
+print 'GRAB IMAGE - Start Readout'
+
+
+class StartReadoutParams(Structure):
+    _fields_ = [('ccd', c_ushort),  # CCD_REQUEST
+                ('readoutMode', c_ushort),
+                ('top', c_ushort),
+                ('left', c_ushort),
+                ('height', c_ushort),
+                ('width', c_ushort)]
+
+
+cin = StartReadoutParams
+cout = None
+udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
+cin = cin(command=sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2, readout_mode=0, top=0, left=0, height=readout_mode[2],
+          width=readout_mode[1])
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_START_READOUT, byref(cin), cout)
+print 'ret', ret
+
+print sbig_constants.PAR_COMMAND.CC_START_READOUT
+
+print 'GRAB IMAGE - Readout lines'
+
+img = np.zeros((readout_mode[2], readout_mode[1]))  # TODO: Check -- Height x Width?
+
+for i_line in range(readout_mode[2]):  # CCD number of lines is the height.
+    class ReadoutLineParams(Structure):
+        _fields_ = [('ccd', c_ushort),  # CCD_REQUEST
+                    ('readoutMode', c_ushort),
+                    ('pixelStart', c_ushort),
+                    ('pixelLength', c_ushort)]
+
+    cin = ReadoutLineParams
+    cout = c_ushort * readout_mode[1]  # Array of width pixels
+    udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
+    cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING, readoutMode=0, pixelStart=0, pixelLength=readout_mode[1])
+    cout = cout()
+    ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_READOUT_LINE, byref(cin), byref(cout))
+    img[i_line] = cout
+
+print 'GRAB IMAGE - End Readout'
+
+
+class EndReadoutParams(Structure):
+    _fields_ = [('ccd', c_ushort)]
+
+
+cin = EndReadoutParams
+cout = None
+udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
+cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING)
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_END_READOUT, byref(cin), cout)
+print 'ret', ret
+
+print 'Close device'
+cmd(sbig_constants.PAR_COMMAND.CC_CLOSE_DEVICE, None, None)
+
+print 'Close driver'
+cmd(sbig_constants.PAR_COMMAND.CC_CLOSE_DRIVER, None, None)
 
 print 'Adios'
-
-#
-#
-#
-# print 'Close Device'
-#
-# print 'Close Driver'
-#
