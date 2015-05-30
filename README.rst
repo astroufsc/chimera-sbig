@@ -21,11 +21,12 @@ There is a package on Ubuntu Server 14.04.2 which installs it:
     sudo apt-get install libsbigudrv2-dev
 
 
-Then, install the package.
+Then, install the plugin running:
 ::
 
     pip install -U git+https://github.com/astroufsc/chimera_sbig.git
 
+This plugin *should* work on *Windows* too but it haven't been tested yet.
 
 Configuration Example
 ---------------------
@@ -44,6 +45,16 @@ Tested Hardware
 This plugin was tested on:
 
 * SBIG ST7 USB + ??? fwheel
+
+
+Contact
+-------
+
+For more information, contact us on chimera's discussion list:
+https://groups.google.com/forum/#!forum/chimera-discuss
+
+Bug reports and patches are welcome and can be sent over our GitHub page:
+https://github.com/astroufsc/chimera_sbig/
 
 
 .. _Santa Barbara Instrument Group: http://www.sbig.com/
