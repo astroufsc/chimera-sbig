@@ -14,6 +14,8 @@ from chimera.interfaces.camera import ReadoutMode
 
 import ctypes
 
+import sbig_structures, sbig_constants
+
 class SBIGException (ChimeraException):
 
     def __init__(self, code, msg=""):
@@ -50,17 +52,15 @@ class SBIGDrv(object):
         See driver doc page 7.
         :return:
         '''
-        # try:
-        #     return self._cmd(udrv.CC_OPEN_DRIVER, None, None)
-        # except SBIGException, e:
-        #     if e.code == udrv.CE_DRIVER_NOT_CLOSED:
-        #         # driver already open (are you trying to use the tracking ccd?)
-        #         return True
-        #     else:
-        #         raise
-        self._udrv.SBIGUnivDrvCommand(10, None, None) #FIXME: ... this is an example ...
 
-        return NotImplementedError()
+        try:
+            return self._cmd(udrv.CC_OPEN_DRIVER, None, None)
+        except SBIGException, e:
+            if e.code == udrv.CE_DRIVER_NOT_CLOSED:
+                #   driver already open (are you trying to use the tracking ccd?)
+                return True
+            else:
+                raise
 
     def closeDriver(self):
         '''
@@ -68,8 +68,7 @@ class SBIGDrv(object):
         See driver doc page 7.
         :return:
         '''
-        # return self._cmd(udrv.CC_CLOSE_DRIVER, None, None)
-        return NotImplementedError()
+        return self._cmd(udrv.CC_CLOSE_DRIVER, None, None)
 
     def openDevice(self, device):
         '''
@@ -80,19 +79,17 @@ class SBIGDrv(object):
         '''
         # FIXME: USB and ETHERNET?
 
-        # odp = udrv.OpenDeviceParams()
-        # odp.deviceType = device
-        #
-        # try:
-        #     return self._cmd(udrv.CC_OPEN_DEVICE, odp, None)
-        # except SBIGException, e:
-        #     if e.code == udrv.CE_DEVICE_NOT_CLOSED:
-        #         # device already open (are you trying to use the tracking ccd?)
-        #         return True
-        #     else:
-        #         raise
+        odp = sbig_structures.OpenDeviceParams(
+            deviceType = sbig_constants.SBIG_DEVICE_TYPE.DEV_USB)
 
-        return NotImplementedError()
+        try:
+            return self._cmd(sbig_constants.PAR_COMMAND.CC_OPEN_DEVICE, odp, None)
+        except SBIGException, e:
+            if e.code == udrv.CE_DEVICE_NOT_CLOSED:
+                # device already open (are you trying to use the tracking ccd?)
+                return True
+            else:
+                raise
 
     def closeDevice(self):
         '''
@@ -381,15 +378,23 @@ class SBIGDrv(object):
         # # ccdSetPoint value will be always equal to ambient thermistor
         # # when regulation not enabled (not documented)
         #
-        # qtsr = udrv.QueryTemperatureStatusResults()
-        #
-        # self._cmd(udrv.CC_QUERY_TEMPERATURE_STATUS, None, qtsr)
-        #
-        # return (qtsr.enabled,
-        #         (qtsr.power / 255.0) * 100.0,
-        #         TemperatureSetPoint.toDegrees(qtsr.ccdSetpoint, "ccd"),
-        #         TemperatureSetPoint.toDegrees(qtsr.ccdThermistor, "ccd"))
-        return NotImplementedError()
+
+        # Function parameter
+        qsp = sbig_structures.QueryTemperatureStatusParams(
+                request = sbig_constants.QUERY_TEMP_STATUS_REQUEST.TEMP_STATUS_ADVANCED2)
+
+
+        # Function return
+        qtsr = sbig_structures.QueryTemperatureStatusResults2()
+
+
+        # Let's call the function
+        self._cmd(udrv.CC_QUERY_TEMPERATURE_STATUS, qsp, qtsr)
+
+        return ( qtsr.fanEnabled,
+            (qtsr.fanPower / 255.0) * 100.0,
+            qtsr.ccdSetpoint,
+            qtsr.imagingCCDTemperature)
 
 
     def startFan(self):
@@ -511,5 +516,13 @@ class SBIGDrv(object):
 
 if __name__ == '__main__':
     print 'Testing sbigdrv...'
-    s = SBIGDrv()
-    #TODO: ...
+
+    sbig = SBIGDrv()
+
+    sbig.openDriver()
+
+    sbig.openDevice(1)
+    sbig.establishLink()
+    sbig.getTemperature(ccd = True)
+    sbig.closeDevice()
+

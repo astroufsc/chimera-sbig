@@ -80,7 +80,7 @@ class PAR_ERROR(Enum):
     """
 
     # 0 - 10
-    CE_NO_ERROR = 1
+    CE_NO_ERROR = 0
     CE_CAMERA_NOT_FOUND = 1  # CE_ERROR_BASE
     CE_EXPOSURE_IN_PROGRESS = 2
     CE_NO_EXPOSURE_IN_PROGRESS = 3
