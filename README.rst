@@ -1,53 +1,50 @@
-chimera_template plugin
-=======================
+chimera_sbig plugin
+===================
 
-This is a template plugin for the chimera observatory control system
-https://github.com/astroufsc/chimera.
+A chimera_ plugin for `Santa Barbara Instrument Group`_ cameras and filter wheels.
 
 Usage
 -----
 
-Rename chimera_template for your plugin name. It is important that the plugin
-name must start with chimera\_ to be found by chimera. Instruments and
-controllers must follow the standard `chimera_(plugin_name)/(instruments|controllers)/(plugin).py`
-
-The class inside `(plugin).py` should be named Plugin (with CamelCase letters).
-
-For more info: https://github.com/astroufsc/chimera/blob/master/docs/site/chimerafordevs.rst#chimera-objects
+Install chimera_ on your computer, and then, this package. Edit the configuration like the example below. The type of
+the ``camera`` instrument section should be ``SBIG``.
 
 
 Installation
 ------------
 
-Installation instructions. Dependencies, etc...
+This plugin depends on the SBIG Universal Driver library ``libsbigudrv.so`` installed on the system ``LD_LIBRARY_PATH``.
+There is a package on Ubuntu Server 14.04.2 which installs it:
 
 ::
 
-   pip install -U chimera_template
+    sudo apt-get install libsbigudrv2-dev
 
-or
 
+Then, install the package.
 ::
 
-    pip install -U git+https://github.com/astroufsc/chimera_template.git
+    pip install -U git+https://github.com/astroufsc/chimera_sbig.git
 
 
 Configuration Example
 ---------------------
 
-Here goes an example of the configuration to be added on `chimera.config` file.
-
 ::
 
-    instrument:
-        name: model
-        type: Example
+    camera:
+      name: st7
+      type: SBIG
+      filters: R G B RGB CLEAR
 
 
-Tested Hardware (for instruments)
----------------------------------
+Tested Hardware
+---------------
 
-This plugin was tested on these hardware:
+This plugin was tested on:
 
-* Hardware example 1, model 2
-* Hardware example 2, model 3
+* SBIG ST7 USB + ??? fwheel
+
+
+.. _Santa Barbara Instrument Group: http://www.sbig.com/
+.. _chimera: https://github.com/astroufsc/chimera
