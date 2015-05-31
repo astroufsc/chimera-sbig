@@ -26,7 +26,9 @@ Then, install the plugin running:
 
     pip install -U git+https://github.com/astroufsc/chimera_sbig.git
 
-This plugin *should* work on *Windows* too but it haven't been tested yet.
+This plugin works both on Windows and Linux. For Windows installation, make sure that you have a **32bit** Pyhton
+distribution and the latest drivers which can be downloaded from the SBIG website http://www.sbig.com/support/software/
+(Windows DriverChecker).
 
 Configuration Example
 ---------------------

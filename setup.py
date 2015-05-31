@@ -8,5 +8,6 @@ setup(
     license='GPL v2',
     author='Rodrigo Souza',
     author_email='william@iaa.es',
-    description='Chimera plugin for Santa Barbara Instrument Group CCD cameras'
+    description='Chimera plugin for Santa Barbara Instrument Group CCD cameras',
+    install_requires=['chimera-python', 'enum34']
 )
