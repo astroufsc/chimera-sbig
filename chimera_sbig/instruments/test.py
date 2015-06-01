@@ -1,13 +1,24 @@
 import ctypes
+import os
 import time
+from astropy.io import fits
 
 import numpy as np
+import sys
 
 import sbig_constants
-
-udrv = ctypes.CDLL('libsbigudrv.so')
-
 from ctypes import Structure, c_ushort, c_ulong, POINTER, c_char, byref, c_double
+
+if sys.platform.startswith('linux'):
+    udrv = ctypes.CDLL('libsbigudrv.so')
+elif sys.platform.startswith('win'):
+    import platform
+    bits, linkage = platform.architecture()
+    if bits.beginswith('32'):
+        udrv = ctypes.windll.LoadLibrary('sbigudrv.dll')
+    else:
+        print 'Invalid Python distribution. Should be 32bits.'
+
 
 
 def cmd(ccc, cin, cout):
@@ -22,10 +33,10 @@ def cmd(ccc, cin, cout):
     print 'err', err
     if err == 0:
         return True
-    if ccc == sbig_constants.PAR_COMMAND.CC_OPEN_DRIVER and err == sbig_constants.PAR_ERROR.CE_DRIVER_NOT_CLOSED:
+    if ccc == sbig_constants.PAR_COMMAND.CC_OPEN_DRIVER.value and err == sbig_constants.PAR_ERROR.CE_DRIVER_NOT_CLOSED.value:
         print 'Driver already open'
         return True
-    elif ccc == sbig_constants.PAR_COMMAND.CC_OPEN_DEVICE and err == sbig_constants.PAR_ERROR.CE_DEVICE_NOT_CLOSED:
+    elif ccc == sbig_constants.PAR_COMMAND.CC_OPEN_DEVICE.value and err == sbig_constants.PAR_ERROR.CE_DEVICE_NOT_CLOSED.value:
         print 'Device already open'
         return True
     elif err:
@@ -34,12 +45,12 @@ def cmd(ccc, cin, cout):
         udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
         cin = cin(errorNo=err)
         cout = cout()
-        ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_ERROR_STRING, byref(cin), byref(cout))
+        ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_ERROR_STRING.value, byref(cin), byref(cout))
         return ret, cout.errorString
 
 
 print 'Open Driver'
-ret = cmd(sbig_constants.PAR_COMMAND.CC_OPEN_DRIVER, None, None)
+ret = cmd(sbig_constants.PAR_COMMAND.CC_OPEN_DRIVER.value, None, None)
 print ret
 
 print 'Test get Errors. This should return Device Not Found.'
@@ -58,7 +69,7 @@ cout = GetErrorStringResults
 udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
 cin = cin(errorNo=27)
 cout = cout()
-ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_ERROR_STRING, byref(cin), byref(cout))
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_ERROR_STRING.value, byref(cin), byref(cout))
 print cout.errorString
 
 print 'Open Device'
@@ -73,13 +84,13 @@ class OpenDeviceParams(Structure):
 cin = OpenDeviceParams
 cout = None
 udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-cin = cin(deviceType=sbig_constants.SBIG_DEVICE_TYPE.DEV_USB)
+cin = cin(deviceType=sbig_constants.SBIG_DEVICE_TYPE.DEV_USB.value)
 # ip = '150.162.131.92'
 # ip = ip.split('.')
 # ip_hex = hex(int(ip[0])).split('x')[1].rjust(2, '0') + hex(int(ip[1])).split('x')[1].rjust(2, '0') + \
 #          hex(int(ip[2])).split('x')[1].rjust(2, '0') + hex(int(ip[3])).split('x')[1].rjust(2, '0')
-# cin = cin(deviceType=sbig_constants.SBIG_DEVICE_TYPE.DEV_ETH, ipAddress=long(ip_hex, 16))
-ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_OPEN_DEVICE, byref(cin), cout)
+# cin = cin(deviceType=sbig_constants.SBIG_DEVICE_TYPE.DEV_ETH.value, ipAddress=long(ip_hex, 16))
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_OPEN_DEVICE.value, byref(cin), cout)
 print ret
 
 print 'Establish Link'
@@ -98,7 +109,7 @@ cout = EstablishLinkResults
 udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
 cin = cin(sbigUseOnly=0)
 cout = cout()
-ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_ESTABLISH_LINK, byref(cin), byref(cout))
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_ESTABLISH_LINK.value, byref(cin), byref(cout))
 print ret, cout.cameraType
 
 print 'Get Link Status'
@@ -116,7 +127,7 @@ cin = None
 cout = GetLinkStatusResults
 udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
 cout = cout()
-ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_LINK_STATUS, cin, byref(cout))
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_LINK_STATUS.value, cin, byref(cout))
 print ret, cout.linkEstablished, cout.baseAddress, cout.cameraType, cout.comTotal, cout.comFailed
 
 print 'Get Temperature'
@@ -146,9 +157,9 @@ class QueryTemperatureStatusResults2(Structure):
 cin = QueryTemperatureStatusParams
 cout = QueryTemperatureStatusResults2
 udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-cin = cin(request=sbig_constants.QUERY_TEMP_STATUS_REQUEST.TEMP_STATUS_ADVANCED2)
+cin = cin(request=sbig_constants.QUERY_TEMP_STATUS_REQUEST.TEMP_STATUS_ADVANCED2.value)
 cout = cout()
-ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_QUERY_TEMPERATURE_STATUS, byref(cin), byref(cout))
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_QUERY_TEMPERATURE_STATUS.value, byref(cin), byref(cout))
 print ret, cout.coolingEnabled, cout.fanEnabled, cout.ccdSetpoint, cout.imagingCCDTemperature, \
     cout.trackingCCDTemperature, cout.externalTrackingCCDTemperature, cout.ambientTemperature, cout.imagingCCDPower, \
     cout.trackingCCDPower, cout.externalTrackingCCDPower, cout.heatsinkTemperature, cout.fanPower, cout.fanSpeed, \
@@ -156,8 +167,8 @@ print ret, cout.coolingEnabled, cout.fanEnabled, cout.ccdSetpoint, cout.imagingC
 
 print 'CCD Info'
 
-for ccd in sbig_constants.CCD_INFO_REQUEST.CCD_INFO_IMAGING, \
-           sbig_constants.CCD_INFO_REQUEST.CCD_INFO_TRACKING:
+for ccd in sbig_constants.CCD_INFO_REQUEST.CCD_INFO_IMAGING.value, \
+           sbig_constants.CCD_INFO_REQUEST.CCD_INFO_TRACKING.value:
 
     class GetCCDInfoParams(Structure):
         _fields_ = [('request', c_ushort)]  # CCD_INFO_REQUEST
@@ -182,13 +193,13 @@ for ccd in sbig_constants.CCD_INFO_REQUEST.CCD_INFO_IMAGING, \
     udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
     cin = cin(request=ccd)
     cout = cout()
-    ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_CCD_INFO, byref(cin), byref(cout))
+    ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_CCD_INFO.value, byref(cin), byref(cout))
     print ret, cout.firmwareVersion, cout.cameraType, cout.name, cout.readoutModes
     for i_mode in range(cout.readoutModes):
         print cout.readoutInfo[i_mode].mode, cout.readoutInfo[i_mode].width, cout.readoutInfo[i_mode].height, \
             cout.readoutInfo[i_mode].width, cout.readoutInfo[i_mode].gain, cout.readoutInfo[i_mode].pixel_width, \
             cout.readoutInfo[i_mode].pixel_height
-        if ccd == sbig_constants.CCD_INFO_REQUEST.CCD_INFO_IMAGING and i_mode == 0:
+        if ccd == sbig_constants.CCD_INFO_REQUEST.CCD_INFO_IMAGING.value and i_mode == 0:
             readout_mode = [
                 cout.readoutInfo[i_mode].mode, cout.readoutInfo[i_mode].width, cout.readoutInfo[i_mode].height,
                 cout.readoutInfo[i_mode].width, cout.readoutInfo[i_mode].gain, cout.readoutInfo[i_mode].pixel_width,
@@ -212,12 +223,12 @@ class StartExposureParams2(Structure):
 cin = StartExposureParams2
 cout = None
 udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING, exposureTime=60 * 100,  # 60 seconds integration
-          openShutter=sbig_constants.SHUTTER_COMMAND.SC_OPEN_SHUTTER, readoutMode=0, top=0, left=0,
+cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING.value, exposureTime=60 * 100,  # 60 seconds integration
+          openShutter=sbig_constants.SHUTTER_COMMAND.SC_OPEN_SHUTTER.value, readoutMode=0, top=0, left=0,
           height=readout_mode[2], width=readout_mode[1])
 # TODO: 1 - Do I need to tell the camera always the height and width?
 # TODO: 2 - Check the minimum exposure times. Like sbig_constants.MIN_ST7_EXPOSURE for ST7
-ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2, byref(cin), cout)
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2.value, byref(cin), cout)
 
 print 'ret', ret
 
@@ -235,9 +246,9 @@ while status == 2:
     cin = QueryCommandStatusParams
     cout = QueryCommandStatusResults
     udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-    cin = cin(command=sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2)
+    cin = cin(command=sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2.value)
     cout = cout()
-    ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_QUERY_COMMAND_STATUS, byref(cin), byref(cout))
+    ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_QUERY_COMMAND_STATUS.value, byref(cin), byref(cout))
     status = cout.status
     print 'status: %3.2f sec - %s' % (time.time() - t0, status)
     time.sleep(.5)
@@ -252,8 +263,8 @@ class EndExposureParams(Structure):
 cin = EndExposureParams
 cout = None
 udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING)
-ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_END_EXPOSURE, byref(cin), cout)
+cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING.value)
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_END_EXPOSURE.value, byref(cin), cout)
 
 print 'GRAB IMAGE - Start Readout'
 
@@ -270,12 +281,12 @@ class StartReadoutParams(Structure):
 cin = StartReadoutParams
 cout = None
 udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-cin = cin(command=sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2, readout_mode=0, top=0, left=0, height=readout_mode[2],
+cin = cin(command=sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2.value, readout_mode=0, top=0, left=0, height=readout_mode[2],
           width=readout_mode[1])
-ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_START_READOUT, byref(cin), cout)
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_START_READOUT.value, byref(cin), cout)
 print 'ret', ret
 
-print sbig_constants.PAR_COMMAND.CC_START_READOUT
+print sbig_constants.PAR_COMMAND.CC_START_READOUT.value
 
 print 'GRAB IMAGE - Readout lines'
 
@@ -291,10 +302,16 @@ for i_line in range(readout_mode[2]):  # CCD number of lines is the height.
     cin = ReadoutLineParams
     cout = c_ushort * readout_mode[1]  # Array of width pixels
     udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-    cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING, readoutMode=0, pixelStart=0, pixelLength=readout_mode[1])
+    cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING.value, readoutMode=0, pixelStart=0, pixelLength=readout_mode[1])
     cout = cout()
-    ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_READOUT_LINE, byref(cin), byref(cout))
+    ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_READOUT_LINE.value, byref(cin), byref(cout))
     img[i_line] = cout
+
+try:
+    os.unlink('test.fits')
+except OSError:
+    pass
+fits.writeto('test.fits', img)
 
 print 'GRAB IMAGE - End Readout'
 
@@ -306,14 +323,14 @@ class EndReadoutParams(Structure):
 cin = EndReadoutParams
 cout = None
 udrv.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
-cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING)
-ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_END_READOUT, byref(cin), cout)
+cin = cin(ccd=sbig_constants.CCD_REQUEST.CCD_IMAGING.value)
+ret = udrv.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_END_READOUT.value, byref(cin), cout)
 print 'ret', ret
 
 print 'Close device'
-cmd(sbig_constants.PAR_COMMAND.CC_CLOSE_DEVICE, None, None)
+cmd(sbig_constants.PAR_COMMAND.CC_CLOSE_DEVICE.value, None, None)
 
 print 'Close driver'
-cmd(sbig_constants.PAR_COMMAND.CC_CLOSE_DRIVER, None, None)
+cmd(sbig_constants.PAR_COMMAND.CC_CLOSE_DRIVER.value, None, None)
 
 print 'Adios'
