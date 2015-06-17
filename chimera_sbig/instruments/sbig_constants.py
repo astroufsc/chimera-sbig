@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class PAR_COMMAND(Enum):
+class PAR_COMMAND(IntEnum):
     """
     Camera Commands. From the sbigudrv.h
 
@@ -71,7 +71,7 @@ class PAR_COMMAND(Enum):
     CC_START_EXPOSURE2 = 50
 
 
-class PAR_ERROR(Enum):
+class PAR_ERROR(IntEnum):
     """
     Return Error Codes. From the sbigudrv.h
 
@@ -130,7 +130,7 @@ class PAR_ERROR(Enum):
     CE_NEXT_ERROR0 = 41
 
 
-class PAR_COMMAND_STATUS(Enum):
+class PAR_COMMAND_STATUS(IntEnum):
     """
     Command State Codes. From the sbigudrv.h
 
@@ -175,32 +175,32 @@ DIFF_GUIDER_COMMAND =  DIFF_GUIDER_STATE =  DIFF_GUIDER_ERROR -     Used with th
 """
 
 
-class QUERY_TEMP_STATUS_REQUEST(Enum):
+class QUERY_TEMP_STATUS_REQUEST(IntEnum):
     TEMP_STATUS_STANDARD = 0
     TEMP_STATUS_ADVANCED = 1
     TEMP_STATUS_ADVANCED2 = 2
 
 
-class ABG_STATE7(Enum):
+class ABG_STATE7(IntEnum):
     ABG_LOW7 = 0
     ABG_CLK_LOW7 = 1
     ABG_CLK_MED7 = 2
     ABG_CLK_HI7 = 3
 
 
-class DRIVER_REQUEST(Enum):
+class DRIVER_REQUEST(IntEnum):
     DRIVER_STD = 0
     DRIVER_EXTEND = 1
     DRIVER_USB_LOADER = 2
 
 
-class CCD_REQUEST(Enum):
+class CCD_REQUEST(IntEnum):
     CCD_IMAGING = 0
     CCD_TRACKING = 1
     CCD_EXT_TRACKING = 2
 
 
-class READOUT_BINNING_MODE(Enum):
+class READOUT_BINNING_MODE(IntEnum):
     RM_1X1 = 0
     RM_2X2 = 1
     RM_3X3 = 2
@@ -214,7 +214,7 @@ class READOUT_BINNING_MODE(Enum):
     RM_NXN = 10
 
 
-class CCD_INFO_REQUEST(Enum):
+class CCD_INFO_REQUEST(IntEnum):
     CCD_INFO_IMAGING = 0
     CCD_INFO_TRACKING = 1
     CCD_INFO_EXTENDED = 2
@@ -224,12 +224,12 @@ class CCD_INFO_REQUEST(Enum):
     CCD_INFO_EXTENDED3 = 6
 
 
-class IMAGING_ABG(Enum):
+class IMAGING_ABG(IntEnum):
     ABG_NOT_PRESENT = 1
     ABG_PRESENT = 2
 
 
-class PORT_RATE(Enum):
+class PORT_RATE(IntEnum):
     BR_AUTO = 0
     BR_9600 = 1
     BR_19K = 2
@@ -238,7 +238,7 @@ class PORT_RATE(Enum):
     BR_115K = 5
 
 
-class CAMERA_TYPE(Enum):
+class CAMERA_TYPE(IntEnum):
     ST7_CAMERA = 4
     ST8_CAMERA = 5
     ST5C_CAMERA = 6
@@ -261,7 +261,7 @@ class CAMERA_TYPE(Enum):
     NO_CAMERA = 0xFFFF
 
 
-class SHUTTER_COMMAND(Enum):
+class SHUTTER_COMMAND(IntEnum):
     SC_LEAVE_SHUTTER = 0
     SC_OPEN_SHUTTER = 1
     SC_CLOSE_SHUTTER = 2
@@ -270,14 +270,14 @@ class SHUTTER_COMMAND(Enum):
     SC_CLOSE_EXT_SHUTTER = 5
 
 
-class SHUTTER_STATE7(Enum):
+class SHUTTER_STATE7(IntEnum):
     SS_OPEN = 0
     SS_CLOSED = 1
     SS_OPENING = 2
     SS_CLOSING = 3
 
 
-class TEMPERATURE_REGULATION(Enum):
+class TEMPERATURE_REGULATION(IntEnum):
     REGULATION_OFF = 0
     REGULATION_ON = 1
     REGULATION_OVERRIDE = 2
@@ -290,14 +290,14 @@ class TEMPERATURE_REGULATION(Enum):
 REGULATION_FROZEN_MASK = 0x8000
 
 
-class LED_STATE(Enum):
+class LED_STATE(IntEnum):
     LED_OFF = 0
     LED_ON = 1
     LED_BLINK_LOW = 2
     LED_BLINK_HIGH = 3
 
 
-class FILTER_COMMAND(Enum):
+class FILTER_COMMAND(IntEnum):
     FILTER_LEAVE = 0
     FILTER_SET_1 = 1
     FILTER_SET_2 = 2
@@ -308,7 +308,7 @@ class FILTER_COMMAND(Enum):
     FILTER_INIT = 7
 
 
-class FILTER_STATE(Enum):
+class FILTER_STATE(IntEnum):
     FS_MOVING = 0
     FS_AT_1 = 1
     FS_AT_2 = 2
@@ -318,20 +318,20 @@ class FILTER_STATE(Enum):
     FS_UNKNOWN = 6
 
 
-class AD_SIZE(Enum):
+class AD_SIZE(IntEnum):
     AD_UNKNOWN = 0
     AD_12_BITS = 1
     AD_16_BITS = 2
 
 
-class FILTER_TYPE(Enum):
+class FILTER_TYPE(IntEnum):
     FW_UNKNOWN = 0
     FW_EXTERNAL = 1
     FW_VANE = 2
     FW_FILTER_WHEEL = 3
 
 
-class AO_FOCUS_COMMAND(Enum):
+class AO_FOCUS_COMMAND(IntEnum):
     AOF_HARD_CENTER = 0
     AOF_SOFT_CENTER = 1
     AOF_STEP_IN = 2
@@ -342,7 +342,7 @@ SRV_SERVICE_PORT = 5000
 BROADCAST_PORT = 5001
 
 
-class SBIG_DEVICE_TYPE(Enum):
+class SBIG_DEVICE_TYPE(IntEnum):
     DEV_NONE = 0
     DEV_LPT1 = 1
     DEV_LPT2 = 2
@@ -359,7 +359,7 @@ class SBIG_DEVICE_TYPE(Enum):
     DEV_USB8 = 0x7F09
 
 
-class DRIVER_CONTROL_PARAM(Enum):
+class DRIVER_CONTROL_PARAM(IntEnum):
     DCP_USB_FIFO_ENABLE = 0
     DCP_CALL_JOURNAL_ENABLE = 1
     DCP_IVTOH_RATIO = 2
@@ -383,7 +383,7 @@ class DRIVER_CONTROL_PARAM(Enum):
     DCP_LAST = 20
 
 
-class USB_AD_CONTROL_COMMAND(Enum):
+class USB_AD_CONTROL_COMMAND(IntEnum):
     USB_AD_IMAGING_GAIN = 0
     USB_AD_IMAGING_OFFSET = 1
 
@@ -400,14 +400,14 @@ class USB_AD_CONTROL_COMMAND(Enum):
     USB_AD_IMAGING_OFFSET_RIGHT = 9
 
 
-class ENUM_USB_DRIVER(Enum):
+class ENUM_USB_DRIVER(IntEnum):
     USBD_SBIGE = 0
     USBD_SBIGI = 1
     USBD_SBIGM = 2
     USBD_NEXT = 3
 
 
-class CFW_MODEL_SELECT(Enum):
+class CFW_MODEL_SELECT(IntEnum):
     CFWSEL_UNKNOWN = 0
     CFWSEL_CFW2 = 1
     CFWSEL_CFW5 = 2
@@ -429,7 +429,7 @@ class CFW_MODEL_SELECT(Enum):
     CFWSEL_FW8_STT = 18
 
 
-class CFW_COMMAND(Enum):
+class CFW_COMMAND(IntEnum):
     CFWC_QUERY = 0
     CFWC_GOTO = 1
     CFWC_INIT = 2
@@ -438,13 +438,13 @@ class CFW_COMMAND(Enum):
     CFWC_CLOSE_DEVICE = 5
 
 
-class CFW_STATUS(Enum):
+class CFW_STATUS(IntEnum):
     CFWS_UNKNOWN = 0
     CFWS_IDLE = 1
     CFWS_BUSY = 2
 
 
-class CFW_ERROR(Enum):
+class CFW_ERROR(IntEnum):
     CFWE_NONE = 0
     CFWE_BUSY = 1
     CFWE_BAD_COMMAND = 2
@@ -456,7 +456,7 @@ class CFW_ERROR(Enum):
     CFWE_I2C_ERROR = 8
 
 
-class CFW_POSITION(Enum):
+class CFW_POSITION(IntEnum):
     CFWP_UNKNOWN = 0
     CFWP_1 = 1
     CFWP_2 = 2
@@ -470,25 +470,25 @@ class CFW_POSITION(Enum):
     CFWP_10 = 10
 
 
-class CFW_COM_PORT(Enum):
+class CFW_COM_PORT(IntEnum):
     CFWPORT_COM1 = 1
     CFWPORT_COM2 = 2
     CFWPORT_COM3 = 3
     CFWPORT_COM4 = 4
 
 
-class CFW_GETINFO_SELECT(Enum):
+class CFW_GETINFO_SELECT(IntEnum):
     CFWG_FIRMWARE_VERSION = 0
     CFWG_CAL_DATA = 1
     CFWG_DATA_REGISTERS = 2
 
 
-class BITIO_OPERATION(Enum):
+class BITIO_OPERATION(IntEnum):
     BITIO_WRITE = 0
     BITIO_READ = 1
 
 
-class BITIO_NAME(Enum):
+class BITIO_NAME(IntEnum):
     BITI_PS_LOW = 0
     BITO_IO1 = 1
     BITO_IO2 = 2
@@ -496,18 +496,18 @@ class BITIO_NAME(Enum):
     BITO_FPGA_WE = 4
 
 
-class BTDI_ERROR(Enum):
+class BTDI_ERROR(IntEnum):
     BTDI_SCHEDULE_ERROR = 1
     BTDI_OVERRUN_ERROR = 2
 
 
-class MF_MODEL_SELECT(Enum):
+class MF_MODEL_SELECT(IntEnum):
     MFSEL_UNKNOWN = 0
     MFSEL_AUTO = 1
     MFSEL_STF = 2
 
 
-class MF_COMMAND(Enum):
+class MF_COMMAND(IntEnum):
     MFC_QUERY = 0
     MFC_GOTO = 1
     MFC_INIT = 2
@@ -515,13 +515,13 @@ class MF_COMMAND(Enum):
     MFC_ABORT = 4
 
 
-class MF_STATUS(Enum):
+class MF_STATUS(IntEnum):
     MFS_UNKNOWN = 0
     MFS_IDLE = 1
     MFS_BUSY = 2
 
 
-class MF_ERROR(Enum):
+class MF_ERROR(IntEnum):
     MFE_NONE = 0
     MFE_BUSY = 1
     MFE_BAD_COMMAND = 2
@@ -532,49 +532,49 @@ class MF_ERROR(Enum):
     MFE_NOT_FOUND = 7
 
 
-class MF_GETINFO_SELECT(Enum):
+class MF_GETINFO_SELECT(IntEnum):
     MFG_FIRMWARE_VERSION = 0
     MFG_DATA_REGISTERS = 1
 
 
-class DIFF_GUIDER_COMMAND(Enum):
+class DIFF_GUIDER_COMMAND(IntEnum):
     DGC_DETECT = 0
     DGC_GET_BRIGHTNESS = 1
     DGC_SET_BRIGHTNESS = 2
 
 
-class DIFF_GUIDER_ERROR(Enum):
+class DIFF_GUIDER_ERROR(IntEnum):
     DGE_NO_ERROR = 0
     DGE_NOT_FOUND = 1
     DGE_BAD_COMMAND = 2
     DGE_BAD_PARAMETER = 3
 
 
-class DIFF_GUIDER_STATUS(Enum):
+class DIFF_GUIDER_STATUS(IntEnum):
     DGS_UNKNOWN = 0
     DGS_IDLE = 1
     DGS_BUSY = 2
 
 
-class FAN_STATE(Enum):
+class FAN_STATE(IntEnum):
     FS_OFF = 0
     FS_ON = 1
     FS_AUTOCONTROL = 2
 
 
-class BULK_IO_COMMAND(Enum):
+class BULK_IO_COMMAND(IntEnum):
     BIO_READ = 0
     BIO_WRITE = 1
     BIO_FLUSH = 2
 
 
-class PIXEL_CHANNEL_MODE(Enum):
+class PIXEL_CHANNEL_MODE(IntEnum):
     PIXEL_CHANNEL_MODE_A = 0
     PIXEL_CHANNEL_MODE_B = 1
     PIXEL_CHANNEL_MODE_AB = 2
 
 
-class ACTIVE_PIXEL_CHANNEL(Enum):
+class ACTIVE_PIXEL_CHANNEL(IntEnum):
     PIXEL_CHANNEL_A = 0
     PIXEL_CHANNEL_B = 1
 

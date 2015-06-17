@@ -4,7 +4,6 @@
 import math
 
 import numpy
-import sbigudrv as udrv
 
 import logging
 log = logging.getLogger(__name__)
@@ -13,8 +12,21 @@ from chimera.core.exceptions import ChimeraException
 from chimera.interfaces.camera import ReadoutMode
 
 import ctypes
+import os
+import sys
+
+from ctypes import Structure, c_ushort, c_ulong, POINTER, c_char, byref, c_double
 
 import sbig_structures, sbig_constants
+
+
+
+class GetErrorStringResults(Structure):
+    _fields_ = [('errorString', c_char * 64)]
+
+
+class GetErrorStringParams(Structure):
+    _fields_ = [('errorNo', ctypes.c_int)]
 
 class SBIGException (ChimeraException):
 
@@ -36,15 +48,23 @@ class SBIGReadoutMode(ReadoutMode):
         # self.height = mode.height
         # self.pixelWidth = float(hex(mode.pixel_width).split('x')[1]) / 100.0
         # self.pixelHeight = float(hex(mode.pixel_height).split('x')[1]) / 100.0
-        self._udrv = ctypes.CDLL('/usr/lib/libsbigudrv.so')  #FIXME:
         pass
 
 
 class SBIGDrv(object):
 
+
     def __init__(self):
-        # FIXME: check device permissions and module status
-        pass
+        if sys.platform.startswith('linux'):
+            self._driver = ctypes.CDLL('libsbigudrv.so')
+        elif sys.platform.startswith('win'):
+            import platform
+
+            bits, linkage = platform.architecture()
+            if bits.beginswith('32'):
+                self._driver = ctypes.windll.LoadLibrary('sbigudrv.dll')
+            else:
+                print 'Invalid Python distribution. Should be 32bits.'
 
     def openDriver(self):
         '''
@@ -54,9 +74,11 @@ class SBIGDrv(object):
         '''
 
         try:
-            return self._cmd(udrv.CC_OPEN_DRIVER, None, None)
+            return self._cmd(sbig_constants.PAR_COMMAND.CC_OPEN_DRIVER, None, None)
+
+
         except SBIGException, e:
-            if e.code == udrv.CE_DRIVER_NOT_CLOSED:
+            if e.code == sbig_constants.PAR_ERROR.CE_DRIVER_NOT_CLOSED:
                 #   driver already open (are you trying to use the tracking ccd?)
                 return True
             else:
@@ -68,7 +90,28 @@ class SBIGDrv(object):
         See driver doc page 7.
         :return:
         '''
-        return self._cmd(udrv.CC_CLOSE_DRIVER, None, None)
+
+        cdp = None
+
+        cdr = None
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cdp), POINTER(cdr)]
+
+        try:
+
+            ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_CLOSE_DRIVER, None, None)
+
+            if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+                return True
+            else:
+                raise self._error(ret)
+
+        except SBIGException, e:
+            if e.code == sbig_constants.CE_DRIVER_NOT_OPEN:
+                # driver not open, so there is no point in raising an exception.
+                return True
+            else:
+                raise
 
     def openDevice(self, device):
         '''
@@ -79,13 +122,25 @@ class SBIGDrv(object):
         '''
         # FIXME: USB and ETHERNET?
 
-        odp = sbig_structures.OpenDeviceParams(
-            deviceType = sbig_constants.SBIG_DEVICE_TYPE.DEV_USB)
+        odp = sbig_structures.OpenDeviceParams
+
+        odr = None
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(odp), POINTER(odr)]
 
         try:
-            return self._cmd(sbig_constants.PAR_COMMAND.CC_OPEN_DEVICE, odp, None)
+
+            odp = odp(deviceType = sbig_constants.SBIG_DEVICE_TYPE.DEV_USB)
+
+            ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_OPEN_DEVICE, byref(odp), None)
+
+            if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+                return True
+            else:
+                raise self._error(ret)
+
         except SBIGException, e:
-            if e.code == udrv.CE_DEVICE_NOT_CLOSED:
+            if e.code == sbig_constants.CE_DEVICE_NOT_CLOSED:
                 # device already open (are you trying to use the tracking ccd?)
                 return True
             else:
@@ -97,8 +152,29 @@ class SBIGDrv(object):
         See driver doc page 7.
         :return:
         '''
-        # return self._cmd(udrv.CC_CLOSE_DEVICE, None, None)
-        return NotImplementedError()
+        # return self._cmd(sbig_constants.CC_CLOSE_DEVICE, None, None)
+
+        cdp = None
+
+        cdr = None
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cdp), POINTER(cdr)]
+
+        try:
+
+            ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_CLOSE_DEVICE, None, None)
+
+            if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+                return True
+            else:
+                raise self._error(ret)
+
+        except SBIGException, e:
+            if e.code == sbig_constants.CE_DEVICE_NOT_OPEN:
+                # device not open, so there is no point in raising an exception.
+                return True
+            else:
+                raise
 
     def establishLink(self):
         '''
@@ -106,15 +182,31 @@ class SBIGDrv(object):
         See driver doc page 26.
         :return:
         '''
-        # elp = udrv.EstablishLinkParams()
-        # elr = udrv.EstablishLinkResults()
-        # err = self._cmd(udrv.CC_ESTABLISH_LINK, elp, elr)
+
+        elp = sbig_structures.EstablishLinkParams
+        elr = sbig_structures.EstablishLinkResults
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(elp), POINTER(elr)]
+
+        elp = elp(sbigUseOnly=0)
+        elr = elr()
+
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_ESTABLISH_LINK, byref(elp), byref(elr))
+
+        print ret, elr.cameraType
+
+
+        return elr.cameraType
+
+
+        # elp = sbig_constants.EstablishLinkParams()
+        # elr = sbig_constants.EstablishLinkResults()
+        # err = self._cmd(sbig_constants.CC_ESTABLISH_LINK, elp, elr)
         #
         # if not err:
         #     self.queryCCDInfo()
         #
         # return err
-        return NotImplementedError()
 
     def isLinked(self):
         '''
@@ -122,12 +214,25 @@ class SBIGDrv(object):
         See driver doc page 32.
         :return:
         '''
-        # # FIXME: ask SBIG to get a better CC_GET_LINK_STATUS.. this one it too
-        # # bogus
-        # glsr = udrv.GetLinkStatusResults()
-        # self._cmd(udrv.CC_GET_LINK_STATUS, None, glsr)
-        # return bool(glsr.linkEstablished)
-        return NotImplementedError()
+        # # FIXME: ask SBIG to get a better CC_GET_LINK_STATUS.. this one it too bogus
+
+        glsp = None
+
+        glsr = sbig_structures.GetLinkStatusResults
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(glsp), POINTER(glsr)]
+
+        glsr = glsr()
+
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_LINK_STATUS, None, byref(glsr))
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return bool(glsr.linkEstablished)
+        else:
+            raise self._error(ret)
+
+
+
 
     def startExposure(self, ccd, exp_time, shutter):
         '''
@@ -140,14 +245,14 @@ class SBIGDrv(object):
         '''
         # TODO: Note that I've changed the old StartExposure by the new StartExposure2. See documentation.
 
-        # sep = udrv.StartExposureParams()
+        # sep = sbig_constants.StartExposureParams()
         #
         # sep.ccd = ccd
         # sep.openShutter = shutter
         # sep.abgState = 0
         # sep.exposureTime = exp_time
         #
-        # return self._cmd(udrv.CC_START_EXPOSURE, sep, None)
+        # return self._cmd(sbig_constants.CC_START_EXPOSURE, sep, None)
         return NotImplementedError()
 
     def endExposure(self, ccd):
@@ -158,10 +263,10 @@ class SBIGDrv(object):
         :param ccd:
         :return:
         '''
-        # eep = udrv.EndExposureParams()
+        # eep = sbig_constants.EndExposureParams()
         # eep.ccd = ccd
         #
-        # return self._cmd(udrv.CC_END_EXPOSURE, eep, None)
+        # return self._cmd(sbig_constants.CC_END_EXPOSURE, eep, None)
         return NotImplementedError()
 
     def exposing(self, ccd):
@@ -173,11 +278,11 @@ class SBIGDrv(object):
         '''
         # if ccd == self.imaging:
         #     return (
-        #         (self._status(udrv.CC_START_EXPOSURE) & self._imgComplete) == self._imgInProgress)
+        #         (self._status(sbig_constants.CC_START_EXPOSURE) & self._imgComplete) == self._imgInProgress)
         #
         # if ccd == self.tracking:
         #     return (
-        #         (self._status(udrv.CC_START_EXPOSURE) & self._trkComplete) == self._trkInProgress)
+        #         (self._status(sbig_constants.CC_START_EXPOSURE) & self._trkComplete) == self._trkInProgress)
         return NotImplementedError()
 
     def startReadout(self, ccd, mode=0, window=None):
@@ -210,7 +315,7 @@ class SBIGDrv(object):
         # if (window[3] < 0 or window[3] > readoutMode.height):
         #     raise ValueError("Invalid window height")
         #
-        # srp = udrv.StartReadoutParams()
+        # srp = sbig_constants.StartReadoutParams()
         # srp.ccd = ccd
         # srp.readoutMode = mode
         # srp.top = window[0]
@@ -218,7 +323,7 @@ class SBIGDrv(object):
         # srp.width = window[2]
         # srp.height = window[3]
         #
-        # return self._cmd(udrv.CC_START_READOUT, srp, None)
+        # return self._cmd(sbig_constants.CC_START_READOUT, srp, None)
         return NotImplementedError()
 
     def endReadout(self, ccd):
@@ -228,9 +333,9 @@ class SBIGDrv(object):
         :param ccd:
         :return:
         '''
-        # erp = udrv.EndReadoutParams()
+        # erp = sbig_constants.EndReadoutParams()
         # erp.ccd = ccd
-        # return self._cmd(udrv.CC_END_READOUT, erp, None)
+        # return self._cmd(sbig_constants.CC_END_READOUT, erp, None)
         return NotImplementedError()
 
     def readoutLine(self, ccd, mode=0, line=None):
@@ -256,7 +361,7 @@ class SBIGDrv(object):
         # if (line[1] < 0 or line[1] > readoutMode.width):
         #     raise ValueError("Invalid pixel lenght")
         #
-        # rolp = udrv.ReadoutLineParams()
+        # rolp = sbig_constants.ReadoutLineParams()
         # rolp.ccd = ccd
         # rolp.readoutMode = mode
         # rolp.pixelStart = line[0]
@@ -265,7 +370,7 @@ class SBIGDrv(object):
         # # create a numpy array to hold the line
         # buff = numpy.zeros(line[1], numpy.uint16)
         #
-        # self._cmd(udrv.CC_READOUT_LINE, rolp, buff)
+        # self._cmd(sbig_constants.CC_READOUT_LINE, rolp, buff)
         #
         # return buff
         return NotImplementedError()
@@ -278,9 +383,9 @@ class SBIGDrv(object):
         :return:
         '''
         #
-        # usb = udrv.QueryUSBResults()
+        # usb = sbig_constants.QueryUSBResults()
         #
-        # self._cmd(udrv.CC_QUERY_USB, None, usb)
+        # self._cmd(sbig_constants.CC_QUERY_USB, None, usb)
         #
         # cams = []
         #
@@ -292,7 +397,30 @@ class SBIGDrv(object):
         return NotImplementedError()
 
     def queryDriverInfo(self):
-        pass
+        '''
+        The Get Driver Info command is used to determine the version and capabilities of the DLL/Driver.
+        Library command: CC_GET_DRIVER_INFO
+        See driver doc page 8.
+        :return: (version, name, maxRequest)
+        '''
+
+        gdip = sbig_structures.GetDriverInfoParams
+
+        gdir = sbig_structures.GetDriverInfoResults0
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(gdip), POINTER(gdir)]
+
+        gdip = gdip(request=1)
+
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_DRIVER_INFO, byref(gdip), byref(gdir))
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return (gdir.version, gdir.name, gdir.maxRequest)
+        else:
+            raise self._error(ret)
+
+
+
 
     def queryCCDInfo(self):
         '''
@@ -306,11 +434,11 @@ class SBIGDrv(object):
         #
         # gcip = udrv.GetCCDInfoParams()
         #
-        # gcip.request = udrv.CCD_INFO_IMAGING
-        # self._cmd(udrv.CC_GET_CCD_INFO, gcip, infoImg)
+        # gcip.request = sbig_constants.CCD_INFO_IMAGING
+        # self._cmd(sbig_constants.CC_GET_CCD_INFO, gcip, infoImg)
         #
-        # gcip.request = udrv.CCD_INFO_TRACKING
-        # self._cmd(udrv.CC_GET_CCD_INFO, gcip, infoTrk)
+        # gcip.request = sbig_constants.CCD_INFO_TRACKING
+        # self._cmd(sbig_constants.CC_GET_CCD_INFO, gcip, infoTrk)
         #
         # self.cameraNames[self.imaging] = infoImg.name
         # self.cameraNames[self.tracking] = infoTrk.name
@@ -337,28 +465,46 @@ class SBIGDrv(object):
         :param autofreeze:
         :return:
         '''
-        # FIXME: As the exposure, this should be changed to the more recent SBIG API. The CC_SET_TEMPERATURE_REGULATION2
-        # FIXME: already converts the units from A/D to Celsius.
 
-        # strp = udrv.SetTemperatureRegulationParams()
-        #
-        # if regulation is True:
-        #     strp.regulation = udrv.REGULATION_ON
-        # else:
-        #     strp.regulation = udrv.REGULATION_OFF
-        #
-        # strp.ccdSetpoint = TemperatureSetPoint.toAD(setpoint)
-        #
-        # self._cmd(udrv.CC_SET_TEMPERATURE_REGULATION, strp, None)
-        #
-        # # activate autofreeze if enabled
-        # if autofreeze is True:
-        #     strp = udrv.SetTemperatureRegulationParams()
-        #     strp.regulation = udrv.REGULATION_ENABLE_AUTOFREEZE
-        #     return self._cmd(udrv.CC_SET_TEMPERATURE_REGULATION, strp, None)
-        #
-        # return True
-        return NotImplementedError()
+        tempRegulation = sbig_constants.TEMPERATURE_REGULATION.REGULATION_ON
+
+        if regulation is False:
+            tempRegulation = sbig_constants.TEMPERATURE_REGULATION.REGULATION_OFF
+
+        strp = sbig_structures.SetTemperatureRegulationParams2
+
+        str = None
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(strp), POINTER(str)]
+
+        strp = strp(regulation=tempRegulation, ccdSetpoint=setpoint)
+
+        # First call must set temperature parameters
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_SET_TEMPERATURE_REGULATION, byref(strp), None)
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR and autofreeze is False:
+            return True
+        elif ret == sbig_constants.PAR_ERROR.CE_NO_ERROR and autofreeze is True:
+
+            strp = sbig_structures.SetTemperatureRegulationParams2
+
+            str = None
+
+            self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(strp), POINTER(str)]
+
+            strp = strp(regulation=sbig_constants.TEMPERATURE_REGULATION.REGULATION_ENABLE_AUTOFREEZE)
+
+            # Second call sets the Freezing
+            ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_SET_TEMPERATURE_REGULATION, byref(strp), None)
+
+            if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+                return True
+            else:
+                raise self._error(ret)
+
+        else:
+            raise self._error(ret)
+
 
     def getTemperature(self, ccd=True):
         '''
@@ -380,42 +526,74 @@ class SBIGDrv(object):
         #
 
         # Function parameter
-        qsp = sbig_structures.QueryTemperatureStatusParams(
-                request = sbig_constants.QUERY_TEMP_STATUS_REQUEST.TEMP_STATUS_ADVANCED2)
+
+        qsp = sbig_structures.QueryTemperatureStatusParams
+        qtsr = sbig_structures.QueryTemperatureStatusResults2
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(qsp), POINTER(qtsr)]
+
+        qsp = qsp(request=sbig_constants.QUERY_TEMP_STATUS_REQUEST.TEMP_STATUS_ADVANCED2)
+
+        qtsr = qtsr()
+
+        ret = self._driver.SBIGUnivDrvCommand(
+            sbig_constants.CC_QUERY_TEMPERATURE_STATUS, byref(qsp), byref(qtsr))
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return (qtsr.fanEnabled,
+                    (qtsr.fanPower / 255.0) * 100.0,
+                    qtsr.ccdSetpoint,
+                    qtsr.imagingCCDTemperature)
+        else:
+            raise self._error(ret)
 
 
-        # Function return
-        qtsr = sbig_structures.QueryTemperatureStatusResults2()
 
-
-        # Let's call the function
-        self._cmd(udrv.CC_QUERY_TEMPERATURE_STATUS, qsp, qtsr)
-
-        return ( qtsr.fanEnabled,
-            (qtsr.fanPower / 255.0) * 100.0,
-            qtsr.ccdSetpoint,
-            qtsr.imagingCCDTemperature)
 
 
     def startFan(self):
         '''
-        Starts Fan. Library command: ????
+        Starts Fan. Library command: MiscellaneousControl
         See driver doc page 30.
         :return:
         '''
-        # mcp = udrv.MiscellaneousControlParams()
-        # mcp.fanEnable = 1
-        # return self._cmd(udrv.CC_MISCELLANEOUS_CONTROL, mcp, None)
+
+        mcp = sbig_structures.MiscellaneousControlParams
+
+        mcr = None
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(mcp), POINTER(mcr)]
+
+        mcp = mcp(fanEnable=True)
+
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_MISCELLANEOUS_CONTROL, byref(mcp), None)
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return True
+        else:
+            raise self._error(ret)
+
 
     def stopFan(self):
         '''
-        Stops Fan. Library command: ????
+        Stops Fan. Library command: MiscellaneousControl
         See driver doc page 30.
         :return:
         '''
-        mcp = udrv.MiscellaneousControlParams()
-        mcp.fanEnable = 0
-        return self._cmd(udrv.CC_MISCELLANEOUS_CONTROL, mcp, None)
+        mcp = sbig_structures.MiscellaneousControlParams
+
+        mcr = None
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(mcp), POINTER(mcr)]
+
+        mcp = odp(fanEnable=False)
+
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_MISCELLANEOUS_CONTROL, byref(mcp), None)
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return True
+        else:
+            raise self._error(ret)
 
     def isFanning(self):
         '''
@@ -423,9 +601,23 @@ class SBIGDrv(object):
         See driver doc page 19.
         :return:
         '''
-        # status = self._status(udrv.CC_MISCELLANEOUS_CONTROL)
-        # return bool(int(status & 0x8))
-        return NotImplementedError()
+
+        qsp = sbig_structures.QueryTemperatureStatusParams
+        qtsr = sbig_structures.QueryTemperatureStatusResults2
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(qsp), POINTER(qtsr)]
+
+        qsp = qsp(request=sbig_constants.QUERY_TEMP_STATUS_REQUEST.TEMP_STATUS_ADVANCED2)
+
+        qtsr = qtsr()
+
+        ret = self._driver.SBIGUnivDrvCommand(
+            sbig_constants.CC_QUERY_TEMPERATURE_STATUS, byref(qsp), byref(qtsr))
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return qtsr.fanEnabled
+        else:
+            raise self._error(ret)
 
     # filter wheel
     def getFilterPosition(self):
@@ -435,12 +627,12 @@ class SBIGDrv(object):
         :return:
         '''
         # cfwp = udrv.CFWParams()
-        # cfwp.cfwModel = udrv.CFWSEL_CFW8
-        # cfwp.cfwCommand = udrv.CFWC_QUERY
+        # cfwp.cfwModel = sbig_constants.CFWSEL_CFW8
+        # cfwp.cfwCommand = sbig_constants.CFWC_QUERY
         #
         # cfwr = udrv.CFWResults()
         #
-        # self._cmd(udrv.CC_CFW, cfwp, cfwr)
+        # self._cmd(sbig_constants.CC_CFW, cfwp, cfwr)
         #
         # return cfwr.cfwPosition
         return NotImplementedError()
@@ -481,20 +673,71 @@ class SBIGDrv(object):
 
     # low-level commands
 
-    def _cmd(self, cmd, cin, cout):
 
-        err = udrv.SBIGUnivDrvCommand(cmd, cin, cout)
+    def _cmd(self, ccc, cin, cout):
 
-        if err == udrv.CE_NO_ERROR:
+        #self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
+
+        if cin is not None:
+            cin = cin()
+            cin = byref(cin)
+        if cout is not None:
+            cout = cout()
+            cout = byref(cout)
+
+        err = self._driver.SBIGUnivDrvCommand(ccc, cin, cout)
+
+        print 'err', err
+
+        if err == 0:
+            return True
+
+        if ccc == sbig_constants.PAR_COMMAND.CC_OPEN_DRIVER and err == sbig_constants.PAR_ERROR.CE_DRIVER_NOT_CLOSED:
+            print 'Driver already open'
+            return True
+        elif ccc == sbig_constants.PAR_COMMAND.CC_OPEN_DEVICE and err == sbig_constants.PAR_ERROR.CE_DEVICE_NOT_CLOSED:
+            print 'Device already open'
+            return True
+        elif err:
+            cin = GetErrorStringParams
+            cout = GetErrorStringResults
+            self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cin), POINTER(cout)]
+            cin = cin(errorNo=err)
+            cout = cout()
+            ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_ERROR_STRING, byref(cin), byref(cout))
+            return ret, cout.errorString
+
+    def _error(self, errorNo):
+
+        #log.error('Got a problem here! Dumping error params')
+        gesp = sbig_structures.GetErrorStringParams()
+        gesr = sbig_structures.GetErrorStringResults()
+
+        gesp.errorNo = errorNo
+
+        self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_ERROR_STRING, gesp, gesr)
+
+        # dumpObj(gesp)
+        # dumpObj(gesr)
+
+        #log.warning('You may need to restart the SBIGDriver!')
+
+        raise SBIGException(errorNo, gesr.errorString)
+
+    def _cmd_OLD(self, cmd, cin, cout):
+
+        err = self._driver.SBIGUnivDrvCommand(cmd, cin, cout)
+
+        if err == sbig_constants.CE_NO_ERROR:
             return True
         else:
             #log.error('Got a problem here! Dumping error params')
-            gesp = udrv.GetErrorStringParams()
-            gesr = udrv.GetErrorStringResults()
+            gesp = self._driver.GetErrorStringParams()
+            gesr = self._driver.GetErrorStringResults()
 
             gesp.errorNo = err
 
-            udrv.SBIGUnivDrvCommand(udrv.CC_GET_ERROR_STRING, gesp, gesr)
+            self._driver.SBIGUnivDrvCommand(sbig_constants.CC_GET_ERROR_STRING, gesp, gesr)
 
             # dumpObj(gesp)
             # dumpObj(gesr)
@@ -505,11 +748,11 @@ class SBIGDrv(object):
 
     def _status(self, cmd):
 
-        qcsp = udrv.QueryCommandStatusParams()
-        qcsr = udrv.QueryCommandStatusResults()
+        qcsp = self._driver.QueryCommandStatusParams()
+        qcsr = self._driver.QueryCommandStatusResults()
         qcsp.command = cmd
 
-        if not self._cmd(udrv.CC_QUERY_COMMAND_STATUS, qcsp, qcsr):
+        if not self._cmd(sbig_constants.CC_QUERY_COMMAND_STATUS, qcsp, qcsr):
             return False
 
         return qcsr.status
@@ -523,6 +766,51 @@ if __name__ == '__main__':
 
     sbig.openDevice(1)
     sbig.establishLink()
-    sbig.getTemperature(ccd = True)
-    sbig.closeDevice()
+    sbig.getTemperature(ccd=True) # Not tested
 
+    sbig.queryDriverInfo() #Not tested
+    sbig.startFan() # Not tested
+    sbig.isFanning() # Not tested
+    sbig.stopFan() # Not tested
+
+    sbig.setTemperature(regulation=True, setpoint=-100, autofreeze=True) # Not tested
+
+    sbig.isLinked() # Not tested
+    sbig.closeDevice() # Not tested
+    sbig.closeDriver() # Not tested
+
+'''
+On the works
+============
+
+Implemented but not tested
+==========================
+startFan
+stopFan
+isFanning
+isLinked
+queryDriverInfo
+setTemperature
+
+
+
+
+
+Not Implemented Yet
+===================
+queryCCDInfo
+
+startExposure
+endExposure
+exposing
+startReadout
+endReadout
+readoutLine
+queryUSB
+
+
+getFilterPosition
+setFilterPosition
+getFilterStatus
+
+'''

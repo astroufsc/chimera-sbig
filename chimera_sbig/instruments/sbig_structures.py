@@ -1,4 +1,4 @@
-from ctypes import Structure, c_ushort, c_ulong, c_double
+from ctypes import Structure, c_ushort, c_ulong, c_double, c_byte
 
 
 class OpenDeviceParams(Structure):
@@ -50,3 +50,53 @@ class QueryTemperatureStatusResults2(Structure):
                 ('fanSpeed', c_double),
                 ('trackingCCDSetpoint', c_double),
                 ]
+
+class EstablishLinkParams(Structure):
+    _fields_ = [('sbigUseOnly', c_ushort)]
+
+
+class EstablishLinkResults(Structure):
+    _fields_ = [('cameraType', c_ushort)]
+
+class GetErrorStringParams(Structure):
+    _fields_ = [('errorNo', c_ushort)]
+
+class GetErrorStringResults(Structure):
+    _fields_ = [('errorString[64]', c_byte)]
+
+
+class GetLinkStatusResults(Structure):
+    _fields_ = [
+        ('linkEstablished', c_ushort),
+        ('baseAddress', c_ushort),
+        ('cameraType', c_ushort),  # CAMERA_TYPE
+        ('comTotal', c_ulong),
+        ('comFailed', c_ulong)]
+
+
+class MiscellaneousControlParams(Structure):
+    _fields_ = [
+        ('fanEnable', c_ushort),
+        ('  shutterCommand', c_ushort),  # SHUTTER_COMMAND
+        ('  ledState', c_ushort)  # LED_STATE
+    ]
+
+
+class GetDriverInfoParams(Structure):
+    _fields_ = [
+        ('  request', c_ushort)  # DRIVER_REQUEST
+    ]
+
+
+class GetDriverInfoResults0(Structure):
+    _fields_ = [
+        ('version', c_ushort),
+        ('name[64]', c_byte),
+        ('maxRequest', c_ushort)]
+
+
+class SetTemperatureRegulationParams2(Structure):
+    _fields_ = [
+        ('  regulation', c_ushort),  # TEMPERATURE_REGULATION
+        ('ccdSetpoint', c_double)
+    ]
