@@ -1,4 +1,4 @@
-from ctypes import Structure, c_ushort, c_ulong, c_double, c_byte
+from ctypes import Structure, c_ushort, c_ulong, c_double, c_byte, c_char_p, c_char
 
 
 class OpenDeviceParams(Structure):
@@ -62,7 +62,7 @@ class GetErrorStringParams(Structure):
     _fields_ = [('errorNo', c_ushort)]
 
 class GetErrorStringResults(Structure):
-    _fields_ = [('errorString[64]', c_byte)]
+    _fields_ = [('errorString', c_char*65)]
 
 
 class GetLinkStatusResults(Structure):
@@ -77,8 +77,8 @@ class GetLinkStatusResults(Structure):
 class MiscellaneousControlParams(Structure):
     _fields_ = [
         ('fanEnable', c_ushort),
-        ('  shutterCommand', c_ushort),  # SHUTTER_COMMAND
-        ('  ledState', c_ushort)  # LED_STATE
+        ('shutterCommand', c_ushort),  # SHUTTER_COMMAND
+        ('ledState', c_ushort)  # LED_STATE
     ]
 
 
@@ -91,12 +91,39 @@ class GetDriverInfoParams(Structure):
 class GetDriverInfoResults0(Structure):
     _fields_ = [
         ('version', c_ushort),
-        ('name[64]', c_byte),
+        ('name', c_char*64),
         ('maxRequest', c_ushort)]
 
 
 class SetTemperatureRegulationParams2(Structure):
     _fields_ = [
-        ('  regulation', c_ushort),  # TEMPERATURE_REGULATION
+        ('regulation', c_ushort),  # TEMPERATURE_REGULATION
         ('ccdSetpoint', c_double)
+    ]
+
+
+class GetCCDInfoParams(Structure):
+    _fields_ = [
+        ('request', c_ushort)  # CCD_INFO_REQUEST
+    ]
+
+
+class READOUT_INFO(Structure):
+    _fields_ = [
+        ('mode', c_ushort),
+        ('width', c_ushort),
+        ('height', c_ushort),
+        ('gain', c_ushort),
+        ('pixel_width', c_ulong),
+        ('pixel_height', c_ulong)
+    ]
+
+
+class GetCCDInfoResults0(Structure):
+    _fields_ = [
+        ('firmwareVersion', c_ushort),
+        ('cameraType', c_ushort),  # CAMERA_TYPE
+        ('name', c_char_p),
+        ('readoutModes', c_ushort),
+        ('readoutInfo', READOUT_INFO * 20)
     ]

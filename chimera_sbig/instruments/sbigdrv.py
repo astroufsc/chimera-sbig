@@ -193,7 +193,7 @@ class SBIGDrv(object):
 
         ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_ESTABLISH_LINK, byref(elp), byref(elr))
 
-        print ret, elr.cameraType
+        #print ret, elr.cameraType
 
 
         return elr.cameraType
@@ -410,19 +410,78 @@ class SBIGDrv(object):
 
         self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(gdip), POINTER(gdir)]
 
-        gdip = gdip(request=1)
+        gdip = gdip(request=2)
+        gdir = gdir()
 
         ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_DRIVER_INFO, byref(gdip), byref(gdir))
 
         if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
-            return (gdir.version, gdir.name, gdir.maxRequest)
+            return gdir.version, gdir.name, gdir.maxRequest
         else:
             raise self._error(ret)
 
 
+    def queryCCDInfoImg(self):
+
+        gcip = sbig_structures.GetCCDInfoParams
+        info_img = sbig_structures.GetCCDInfoResults0
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(gcip), POINTER(info_img)]
+
+        gcip = gcip(request=sbig_constants.CCD_INFO_REQUEST.CCD_INFO_IMAGING)
+        info_img = info_img()
+
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_CCD_INFO, byref(gcip), byref(info_img))
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return info_img
+        else:
+            raise self._error(ret)
+
+    def queryCCDInfoTrk(self):
+
+        gcip = sbig_structures.GetCCDInfoParams
+        info_trk = sbig_structures.GetCCDInfoResults0
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(gcip), POINTER(info_trk)]
+
+        gcip = gcip(request=sbig_constants.CCD_INFO_REQUEST.CCD_INFO_TRACKING)
+        info_trk = info_trk()
+
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_CCD_INFO, byref(gcip), byref(info_trk))
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return info_trk
+        else:
+            raise self._error(ret)
 
 
     def queryCCDInfo(self):
+        '''
+        Updates CCD info for imaging and (if exists) tracking CCD. Library command: CCD_INFO_IMAGING
+        See driver doc page 26.
+        :return:
+        '''
+
+        info_img = self.queryCCDInfoImg()
+        info_trk = self.queryCCDInfoTrk()
+
+        self.cameraNames[sbig_constants.CCD_REQUEST.CCD_IMAGING]  = info_img.name
+        self.cameraNames[sbig_constants.CCD_REQUEST.CCD_TRACKING] = info_trk.name
+
+        #
+        # # imaging ccd readout modes
+        # for i in range(info_img.readoutModes):
+        #     mode = info_img.readoutInfo[i]
+        #     self.readoutModes[sbig_constants.CCD_REQUEST.CCD_IMAGING][mode.mode] = SBIGReadoutMode(mode)
+        #
+        # for i in range(info_trk.readoutModes):
+        #     mode = info_trk.readoutInfo[i]
+        #     self.readoutModes[sbig_constants.CCD_REQUEST.CCD_TRACKING][mode.mode] = SBIGReadoutMode(mode)
+
+        return True
+
+    def queryCCDInfoOld(self):
         '''
         Updates CCD info for imaging and (if exists) tracking CCD. Library command: CC_READOUT_LINE
         See driver doc page 26.
@@ -537,7 +596,7 @@ class SBIGDrv(object):
         qtsr = qtsr()
 
         ret = self._driver.SBIGUnivDrvCommand(
-            sbig_constants.CC_QUERY_TEMPERATURE_STATUS, byref(qsp), byref(qtsr))
+            sbig_constants.PAR_COMMAND.CC_QUERY_TEMPERATURE_STATUS, byref(qsp), byref(qtsr))
 
         if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
             return (qtsr.fanEnabled,
@@ -586,7 +645,7 @@ class SBIGDrv(object):
 
         self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(mcp), POINTER(mcr)]
 
-        mcp = odp(fanEnable=False)
+        mcp = mcp(fanEnable=False)
 
         ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_MISCELLANEOUS_CONTROL, byref(mcp), None)
 
@@ -612,10 +671,10 @@ class SBIGDrv(object):
         qtsr = qtsr()
 
         ret = self._driver.SBIGUnivDrvCommand(
-            sbig_constants.CC_QUERY_TEMPERATURE_STATUS, byref(qsp), byref(qtsr))
+            sbig_constants.PAR_COMMAND.CC_QUERY_TEMPERATURE_STATUS, byref(qsp), byref(qtsr))
 
         if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
-            return qtsr.fanEnabled
+            return True if qtsr.fanEnabled == 1 else False
         else:
             raise self._error(ret)
 
@@ -687,8 +746,6 @@ class SBIGDrv(object):
 
         err = self._driver.SBIGUnivDrvCommand(ccc, cin, cout)
 
-        print 'err', err
-
         if err == 0:
             return True
 
@@ -710,12 +767,17 @@ class SBIGDrv(object):
     def _error(self, errorNo):
 
         #log.error('Got a problem here! Dumping error params')
-        gesp = sbig_structures.GetErrorStringParams()
-        gesr = sbig_structures.GetErrorStringResults()
+        gesp = sbig_structures.GetErrorStringParams
+        gesr = sbig_structures.GetErrorStringResults
 
-        gesp.errorNo = errorNo
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(gesp), POINTER(gesr)]
 
-        self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_ERROR_STRING, gesp, gesr)
+        gesp = gesp(errorNo=errorNo)
+        gesr = gesr()
+
+
+        self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_ERROR_STRING, byref(gesp), byref(gesr))
+
 
         # dumpObj(gesp)
         # dumpObj(gesr)
@@ -758,33 +820,59 @@ class SBIGDrv(object):
         return qcsr.status
 
 if __name__ == '__main__':
-    print 'Testing sbigdrv...'
-
     sbig = SBIGDrv()
 
-    sbig.openDriver()
 
-    sbig.openDevice(1)
-    sbig.establishLink()
-    sbig.getTemperature(ccd=True) # Not tested
+    try:
+        print 'Testing sbigdrv...'
 
-    sbig.queryDriverInfo() #Not tested
-    sbig.startFan() # Not tested
-    sbig.isFanning() # Not tested
-    sbig.stopFan() # Not tested
+        print "openDriver = " + str(sbig.openDriver())
 
-    sbig.setTemperature(regulation=True, setpoint=-100, autofreeze=True) # Not tested
+        print "queryDriverInfo = (version, name, maxRequest) -> " + str(tuple(sbig.queryDriverInfo()))
 
-    sbig.isLinked() # Not tested
-    sbig.closeDevice() # Not tested
-    sbig.closeDriver() # Not tested
+        print "openDevice = " + str(sbig.openDevice(1))
+
+        print "establishLink = " + str(sbig.establishLink())
+
+        # fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature
+        print "getTemperature = (fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature) -> " + str(tuple(sbig.getTemperature(ccd=True))) #OK
+
+        print "startFan = " + str(sbig.startFan()) #OK
+
+        print "isFanning = " + str(sbig.isFanning()) #OK
+
+        print "stopFan = " + str(sbig.stopFan()) #OK
+
+        print "setTemperature = " + str(sbig.setTemperature(regulation=True, setpoint=-15, autofreeze=True)) #OK
+
+        print "isLinked = " + str(sbig.isLinked())
+
+        sbig.queryCCDInfo() #Not tested
+
+        print "imaging = " + sbig.cameraNames[sbig.imaging]
+        print "tracking = " + sbig.cameraNames[sbig.tracking]
+
+        #for i in range(sbig.readoutModes):
+        #    mode = info_img.readoutInfo[i]
+        #    self.readoutModes[sbig_constants.CCD_REQUEST.CCD_IMAGING][mode.mode] = SBIGReadoutMode(mode)
+
+        sbig.closeDevice() # Not tested
+        sbig.closeDriver() # Not tested
+
+    except SBIGException, e:
+        print "Exception: " + e.message
 
 '''
 On the works
 ============
+queryCCDInfo
 
-Implemented but not tested
+OK
 ==========================
+openDriver
+openDevice
+establishLink
+getTemperature
 startFan
 stopFan
 isFanning
@@ -792,13 +880,11 @@ isLinked
 queryDriverInfo
 setTemperature
 
-
-
-
+Implemented but not tested
+==========================
 
 Not Implemented Yet
 ===================
-queryCCDInfo
 
 startExposure
 endExposure
@@ -807,8 +893,6 @@ startReadout
 endReadout
 readoutLine
 queryUSB
-
-
 getFilterPosition
 setFilterPosition
 getFilterStatus
