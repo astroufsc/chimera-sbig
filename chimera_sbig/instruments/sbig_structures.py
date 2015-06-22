@@ -127,3 +127,70 @@ class GetCCDInfoResults0(Structure):
         ('readoutModes', c_ushort),
         ('readoutInfo', READOUT_INFO * 20)
     ]
+
+class CFWParams(Structure):
+    _fields_ = [
+        ('cfwModel', c_ushort),  #  CFW_MODEL_SELECT
+        ('cfwCommand', c_ushort),  #  CFW_COMMAND
+        ('cfwParam1', c_ulong),
+        ('cfwParam2', c_ulong),
+        ('outLength', c_ushort),
+        ('outPtr', c_ubyte),
+        ('inLength', c_ushort),
+        ('inPtr', c_ubyte)
+    ]
+
+
+class CFWResults(Structure):
+    _fields_ = [
+        ('cfwModel', c_ushort),  #  CFW_MODEL_SELECT
+        ('cfwPosition', c_ushort),  #  CFW_POSITION
+        ('cfwStatus', c_ushort),  #  CFW_STATUS
+        ('cfwError', c_ushort),  #  CFW_ERROR
+        ('cfwResult1', c_ulong),
+        ('cfwResult2', c_ulong)
+    ]
+
+
+class QUERY_USB_INFO(Structure):
+    _fields_ = [
+        ('cameraFound', c_ushort),
+        ('cameraType', c_ushort),
+        ('name', c_char_p),
+        ('serialNumber', c_char_p)
+    ]
+
+class QueryUSBResults(Structure):
+    _fields_ = [
+        ('camerasFound', c_ushort),
+        ('QUERY_USB_INFO', QUERY_USB_INFO*4)
+    ]
+
+
+class StartExposureParams(Structure):
+    _fields_ = [
+        ('ccd', c_ushort),  # CCD_REQUEST
+        ('exposureTime', c_ulong),
+        ('abgState', c_ushort),  # ABG_STATE7
+        ('openShutter', c_ushort),  # SHUTTER_COMMAND
+    ]
+
+
+class StartExposureParams2(Structure):
+    _fields_ = [
+        ('ccd', c_ushort),  # CCD_REQUEST
+        ('exposureTime', c_ulong),
+        ('abgState', c_ushort),  # ABG_STATE7
+        ('openShutter', c_ushort),  # SHUTTER_COMMAND
+        ('readoutMode', c_ushort),
+        ('top', c_ushort),
+        ('left', c_ushort),
+        ('height', c_ushort),
+        ('width', c_ushort)
+    ]
+
+
+class EndExposureParams(Structure):
+    _fields_ = [
+        ('ccd', c_ushort)  # CCD_REQUEST
+    ]
