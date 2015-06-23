@@ -62,7 +62,8 @@ class GetErrorStringParams(Structure):
     _fields_ = [('errorNo', c_ushort)]
 
 class GetErrorStringResults(Structure):
-    _fields_ = [('errorString', c_char*65)]
+    #_fields_ = [('errorString', c_char*65)]
+    _fields_ = [('errorString',  c_char_p)]
 
 
 class GetLinkStatusResults(Structure):
@@ -84,7 +85,7 @@ class MiscellaneousControlParams(Structure):
 
 class GetDriverInfoParams(Structure):
     _fields_ = [
-        ('  request', c_ushort)  # DRIVER_REQUEST
+        ('request', c_ushort)  # DRIVER_REQUEST
     ]
 
 
@@ -172,7 +173,7 @@ class StartExposureParams(Structure):
         ('ccd', c_ushort),  # CCD_REQUEST
         ('exposureTime', c_ulong),
         ('abgState', c_ushort),  # ABG_STATE7
-        ('openShutter', c_ushort),  # SHUTTER_COMMAND
+        ('openShutter', c_ushort)  # SHUTTER_COMMAND
     ]
 
 
@@ -193,4 +194,30 @@ class StartExposureParams2(Structure):
 class EndExposureParams(Structure):
     _fields_ = [
         ('ccd', c_ushort)  # CCD_REQUEST
+    ]
+
+
+class EndReadoutParams(Structure):
+    _fields_ = [
+        ('ccd', c_ushort),  # CCD_REQUEST
+    ]
+
+
+class StartReadoutParams(Structure):
+    _fields_ = [
+        ('ccd', c_ushort),  # CCD_REQUEST
+        ('readoutMode', c_ushort),
+        ('top', c_ushort),
+        ('left', c_ushort),
+        ('height', c_ushort),
+        ('width', c_ushort)
+    ]
+
+
+class ReadoutLineParams(Structure):
+    _fields_ = [
+        ('ccd', c_ushort),  # CCD_REQUEST
+        ('readoutMode', c_ushort),
+        ('pixelStart', c_ushort),
+        ('pixelLength', c_ushort)
     ]
