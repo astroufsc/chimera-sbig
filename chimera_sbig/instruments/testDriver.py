@@ -16,6 +16,7 @@ import sbig_constants
 import sbigdrv
 
 
+testExposure = True
 
 
 if __name__ == '__main__':
@@ -56,7 +57,7 @@ if __name__ == '__main__':
 
         # print "getFilterStatus = " + str(sbig.getFilterStatus()) # OK
 
-        # print "getFilterPosition = " + str(sbig.getFilterPosition()) # OK
+        # print "getFilterPosition BEFORE = " + str(sbig.getFilterPosition()) # OK
 
         # print "setFilterPosition = " + str(sbig.setFilterPosition(sbig_constants.CFW_POSITION.CFWP_1)) # SEGMENTATION FAULT
 
@@ -72,35 +73,47 @@ if __name__ == '__main__':
 
         # Starting observation...
 
-        print " startExposure = " \
-              + str(sbig.startExposure(sbig.imaging, 60*100, sbig_constants.SHUTTER_COMMAND.SC_OPEN_SHUTTER))
+        if testExposure:
 
-        time.sleep(60)
+            print " startExposure = " \
+                  + str(sbig.startExposure(sbig.imaging, 60*100, sbig_constants.SHUTTER_COMMAND.SC_OPEN_SHUTTER))
 
-        print " endExposure = " + str(sbig.endExposure(sbig.imaging))
+            for cont in range(10):  # CCD number of lines is the height.
+                print "   exposing => " + str(sbig.exposing(sbig.imaging))
+                time.sleep(1)
 
-        print " startReadout = " + str(sbig.startReadout(sbig.imaging))
+            time.sleep(60)
 
-        readout_mode = sbig.readoutModes[sbig.imaging][sbig_constants.READOUT_BINNING_MODE.RM_1X1]
+            print " endExposure = " + str(sbig.endExposure(sbig.imaging))
 
-        # attributes = vars(readout_mode)
-        # print ', '.join("%s: %s" % item for item in attributes.items())
+            print "   exposing => " + str(sbig.exposing(sbig.imaging))
 
-        img = numpy.zeros((readout_mode.height, readout_mode.width))  # TODO: Check -- Height x Width?
+            print " startReadout = " + str(sbig.startReadout(sbig.imaging))
 
-        heigth = readout_mode.height
+            readout_mode = sbig.readoutModes[sbig.imaging][sbig_constants.READOUT_BINNING_MODE.RM_1X1]
 
-        for i_line in range(heigth):  # CCD number of lines is the height.
-            img[i_line] = sbig.readoutLine(sbig.imaging)
+            # attributes = vars(readout_mode)
+            # print ', '.join("%s: %s" % item for item in attributes.items())
 
-        try:
-            os.unlink('test.fits')
-        except OSError:
-            pass
+            img = numpy.zeros((readout_mode.height, readout_mode.width))  # TODO: Check -- Height x Width?
 
-        fits.writeto('test.fits', img)
+            heigth = readout_mode.height
 
-        print " endReadout = " + str(sbig.endReadout(sbig.imaging))
+            for i_line in range(heigth):  # CCD number of lines is the height.
+                img[i_line] = sbig.readoutLine(sbig.imaging)
+
+            try:
+                os.unlink('test.fits')
+            except OSError:
+                pass
+
+            fits.writeto('test.fits', img)
+
+            print " endReadout = " + str(sbig.endReadout(sbig.imaging))
+
+            print "   exposing => " + str(sbig.exposing(sbig.imaging))
+
+        print " All tests performed."
 
     except sbigdrv.SBIGException, e:
         print "SBIGException: " + e.message
@@ -115,7 +128,6 @@ if __name__ == '__main__':
 '''
 ERROR
 ============
-setFilterPosition
 
 OK
 ==========================
@@ -144,6 +156,7 @@ startReadout
 readoutLine
 exposing
 
+setFilterPosition
 
 
 '''

@@ -137,9 +137,9 @@ class CFWParams(Structure):
         ('cfwParam1', c_ulong),
         ('cfwParam2', c_ulong),
         ('outLength', c_ushort),
-        ('outPtr', c_ubyte),
+        ('outPtr', c_char_p),
         ('inLength', c_ushort),
-        ('inPtr', c_ubyte)
+        ('inPtr', c_char_p)
     ]
 
 
@@ -221,4 +221,16 @@ class ReadoutLineParams(Structure):
         ('readoutMode', c_ushort),
         ('pixelStart', c_ushort),
         ('pixelLength', c_ushort)
+    ]
+
+
+class QueryCommandStatusParams(Structure):
+    _fields_ = [
+        ('command', c_ushort)
+    ]
+
+
+class QueryCommandStatusResults(Structure):
+    _fields_ = [
+        ('status', c_ushort)
     ]
