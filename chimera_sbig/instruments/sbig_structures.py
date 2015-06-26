@@ -1,4 +1,4 @@
-from ctypes import Structure, c_ushort, c_ulong, c_double, c_byte, c_char_p, c_char
+from ctypes import Structure, c_ushort, c_ulong, c_double, c_byte, c_char_p, c_char, c_ubyte
 
 
 class OpenDeviceParams(Structure):
@@ -62,8 +62,8 @@ class GetErrorStringParams(Structure):
     _fields_ = [('errorNo', c_ushort)]
 
 class GetErrorStringResults(Structure):
-    #_fields_ = [('errorString', c_char*65)]
-    _fields_ = [('errorString',  c_char_p)]
+    _fields_ = [('errorString', c_char*64)]
+    # _fields_ = [('errorString',  c_char_p)]
 
 
 class GetLinkStatusResults(Structure):
@@ -93,7 +93,8 @@ class GetDriverInfoResults0(Structure):
     _fields_ = [
         ('version', c_ushort),
         ('name', c_char*64),
-        ('maxRequest', c_ushort)]
+        ('maxRequest', c_ushort)
+    ]
 
 
 class SetTemperatureRegulationParams2(Structure):
@@ -124,9 +125,9 @@ class GetCCDInfoResults0(Structure):
     _fields_ = [
         ('firmwareVersion', c_ushort),
         ('cameraType', c_ushort),  # CAMERA_TYPE
-        ('name', c_char_p),
+        ('name', c_char*64),
         ('readoutModes', c_ushort),
-        ('readoutInfo', READOUT_INFO * 20)
+        ('readoutInfo', READOUT_INFO*20)
     ]
 
 class CFWParams(Structure):
@@ -157,8 +158,8 @@ class QUERY_USB_INFO(Structure):
     _fields_ = [
         ('cameraFound', c_ushort),
         ('cameraType', c_ushort),
-        ('name', c_char_p),
-        ('serialNumber', c_char_p)
+        ('name', c_char*64),
+        ('serialNumber', c_byte*10)
     ]
 
 class QueryUSBResults(Structure):

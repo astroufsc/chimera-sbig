@@ -4,7 +4,7 @@
 import math
 
 import numpy
-
+import time
 import logging
 log = logging.getLogger(__name__)
 
@@ -14,6 +14,8 @@ from chimera.interfaces.camera import ReadoutMode
 import ctypes
 import os
 import sys
+
+from astropy.io import fits
 
 from ctypes import Structure, c_ushort, c_ulong, POINTER, c_char, byref, c_double
 
@@ -41,15 +43,13 @@ class SBIGException (ChimeraException):
 class SBIGReadoutMode(ReadoutMode):
 
     def __init__(self, mode):
-        # FIXME: Is this needed?
         self.mode = mode.mode
         self.gain = float(hex(mode.gain).split('x')[1]) / 100.0
         self.width = mode.width
         self.height = mode.height
-        self.pixelWidth = float(hex(mode.pixel_width).split('x')[1]) / 100.0
-        self.pixelHeight = float(hex(mode.pixel_height).split('x')[1]) / 100.0
-        pass
 
+        self.pixelWidth = float(hex(mode.pixel_width).split('x')[1].split('L')[0]) / 100.0
+        self.pixelHeight = float(hex(mode.pixel_height).split('x')[1].split('L')[0]) / 100.0
 
 class SBIGDrv(object):
 
@@ -64,6 +64,11 @@ class SBIGDrv(object):
     _trkIdle = 0x0
     _trkInProgress = 0x8
     _trkComplete = 0xc
+
+    readoutModes = {imaging: {},
+                    tracking: {}}
+
+    cameraNames = {}
 
     def __init__(self):
         if sys.platform.startswith('linux'):
@@ -180,7 +185,7 @@ class SBIGDrv(object):
                 raise self._error(ret)
 
         except SBIGException, e:
-            if e.code == sbig_constants.CE_DEVICE_NOT_OPEN:
+            if e.code == sbig_constants.PAR_ERROR.CE_DEVICE_NOT_OPEN:
                 # device not open, so there is no point in raising an exception.
                 return True
             else:
@@ -204,18 +209,10 @@ class SBIGDrv(object):
         ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_ESTABLISH_LINK, byref(elp), byref(elr))
 
         if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
-            return elr.cameraType
+            self.queryCCDInfo()
+            return True
         else:
             raise self._error(ret)
-
-        # elp = sbig_constants.EstablishLinkParams()
-        # elr = sbig_constants.EstablishLinkResults()
-        # err = self._cmd(sbig_constants.CC_ESTABLISH_LINK, elp, elr)
-        #
-        # if not err:
-        #     self.queryCCDInfo()
-        #
-        # return err
 
     def isLinked(self):
         '''
@@ -250,13 +247,20 @@ class SBIGDrv(object):
         :return:
         '''
 
+        # No binning by default.
+        readoutmode = self.readoutModes[self.imaging][sbig_constants.READOUT_BINNING_MODE.RM_1X1]
+
+        window = readoutmode.getWindow()
+
         sep = sbig_structures.StartExposureParams2
 
         ser = None
 
         self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(sep), POINTER(ser)]
 
-        sep = sep(ccd=ccd, abgState=0, exposureTime=exp_time, openShutter=shutter)
+        sep = sep(ccd=ccd, abgState=0, exposureTime=exp_time, openShutter=shutter,
+                  readoutMode=readoutmode.mode,
+                  top=window[0], left=window[1], width=window[2], height=window[3])
 
         ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_START_EXPOSURE2, byref(sep), None)
 
@@ -398,18 +402,18 @@ class SBIGDrv(object):
             raise ValueError("Invalid pixel lenght")
 
         rolp = sbig_structures.ReadoutLineParams
-        rolr = None
+        rolr = c_ushort * readoutMode.width
 
-        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(srp), POINTER(srr)]
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(rolp), POINTER(rolr)]
 
-        srp = srp(ccd=ccd, readoutMode=mode, pixelStart=line[0], pixelLength=line[1])
+        rolp = rolp(ccd=ccd, readoutMode=mode, pixelStart=line[0], pixelLength=line[1])
+        rolr = rolr()
 
-        buff = numpy.zeros(line[1], numpy.uint16)
 
-        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_READOUT_LINE, byref(srp), buff)
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_READOUT_LINE, byref(rolp), byref(rolr))
 
         if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
-            return buff
+            return rolr
         else:
             raise self._error(ret)
 
@@ -437,9 +441,9 @@ class SBIGDrv(object):
 
         if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
 
-            for cam in qusbr.QUERY_USB_INFO:
-                if cam.cameraFound:
-                    cams.append(cam.name)
+            for camera in qusbr.QUERY_USB_INFO:
+                if camera.cameraFound:
+                    cams.append(camera.name)
 
             return cams
         else:
@@ -460,7 +464,7 @@ class SBIGDrv(object):
 
         self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(gdip), POINTER(gdir)]
 
-        gdip = gdip(request=2)
+        gdip = gdip(request=sbig_constants.DRIVER_REQUEST.DRIVER_STD)
         gdir = gdir()
 
         ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_GET_DRIVER_INFO, byref(gdip), byref(gdir))
@@ -525,9 +529,17 @@ class SBIGDrv(object):
             mode = info_img.readoutInfo[i]
             self.readoutModes[self.imaging][mode.mode] = SBIGReadoutMode(mode)
 
+            # Debug
+            # attributes = vars(self.readoutModes[self.imaging][mode.mode])
+            # print ', '.join("%s: %s" % item for item in attributes.items())
+
         for i in range(info_trk.readoutModes):
             mode = info_trk.readoutInfo[i]
             self.readoutModes[self.tracking][mode.mode] = SBIGReadoutMode(mode)
+
+            # Debug
+            # attributes = vars(self.readoutModes[self.tracking][mode.mode])
+            # print ', '.join("%s: %s" % item for item in attributes.items())
 
         return True
 
@@ -708,7 +720,8 @@ class SBIGDrv(object):
 
         self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cfwp), POINTER(cfwr)]
 
-        cfwp = cfwp(cfwModel=sbig_constants.CFW_MODEL_SELECT.CFWSEL_CFW8, cfwCommand=sbig_constants.CFW_COMMAND.CFWC_QUERY)
+        cfwp = cfwp(cfwModel=sbig_constants.CFW_MODEL_SELECT.CFWSEL_CFW8,
+                    cfwCommand=sbig_constants.CFW_COMMAND.CFWC_QUERY)
 
         cfwr = cfwr()
 
@@ -835,73 +848,105 @@ if __name__ == '__main__':
     sbig = SBIGDrv()
 
     try:
-        print 'Testing sbigdrv...'
+        print '=> Testing sbigdrv...'
 
-        print "openDriver = " + str(sbig.openDriver())
+        print " openDriver = " + str(sbig.openDriver())
 
-        print "queryDriverInfo = (version, name, maxRequest) -> " + str(tuple(sbig.queryDriverInfo()))
+        # print "queryUSB => "
 
-        print "openDevice = " + str(sbig.openDevice(1))
+        # cams = sbig.queryUSB() # OK
 
-        print "establishLink = " + str(sbig.establishLink())
+        # for cam in cams:
+        #    print cam
+
+        print " openDevice = " + str(sbig.openDevice(1))
+
+        # print "queryDriverInfo = (version, name, maxRequest) -> " + str(tuple(sbig.queryDriverInfo())) # OK
+
+        print " establishLink = " + str(sbig.establishLink())
+
+        print " isLinked = " + str(sbig.isLinked())
 
         # fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature
-        print "getTemperature = (fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature) -> " + str(tuple(sbig.getTemperature(ccd=True))) #OK
+        # print "getTemperature = (fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature) -> " + str(tuple(sbig.getTemperature(ccd=True))) #OK
 
-        #print "startFan = " + str(sbig.startFan()) #OK
+        # print "startFan = " + str(sbig.startFan()) #OK
 
-        print "isFanning = " + str(sbig.isFanning()) #OK
+        # print "isFanning = " + str(sbig.isFanning()) #OK
 
-        #print "stopFan = " + str(sbig.stopFan()) #OK
+        # print "stopFan = " + str(sbig.stopFan()) #OK
 
-        #print "setTemperature = " + str(sbig.setTemperature(regulation=True, setpoint=-15, autofreeze=True)) #OK
+        # print "setTemperature = " + str(sbig.setTemperature(regulation=True, setpoint=-15, autofreeze=True)) #OK
 
-        print "isLinked = " + str(sbig.isLinked())
 
-        print "" + str(sbig.queryCCDInfo()) # NOT TESTED
+        #print " queryCCDInfo = " + str(sbig.queryCCDInfo()) # OK
 
-        print "imaging = " + sbig.cameraNames[sbig.imaging]
-        print "tracking = " + sbig.cameraNames[sbig.tracking]
+        #print "getFilterStatus = " + str(sbig.getFilterStatus()) # OK
 
-        #for i in range(sbig.readoutModes):
-        #    mode = info_img.readoutInfo[i]
-        #    self.readoutModes[sbig_constants.CCD_REQUEST.CCD_IMAGING][mode.mode] = SBIGReadoutMode(mode)
+        #print "getFilterPosition = " + str(sbig.getFilterPosition()) # OK
 
-        print "getFilterStatus = " + str(sbig.getFilterStatus()) # NOT TESTED
+        # print "setFilterPosition = " + str(sbig.setFilterPosition(sbig_constants.CFW_POSITION.CFWP_1)) # SEGMENTATION FAULT
 
-        print "getFilterPosition = " + str(sbig.getFilterPosition()) # NOT TESTED
 
-        print "setFilterPosition = " + str(sbig.setFilterPosition(1)) # NOT TESTED
 
-        print "queryUSB = " + str(sbig.queryUSB()) # NOT TESTED
+        #print "startExposure = " + str(sbig.startExposure(0, 10, 0)) # NOT TESTED
 
-        print "startExposure = " + str(sbig.startExposure(0, 10, 0)) # NOT TESTED
+        #print "endExposure = " + str(sbig.endExposure(0)) # NOT TESTED
 
-        print "endExposure = " + str(sbig.endExposure(0)) # NOT TESTED
+        #print "startReadout = " + str(sbig.startReadout(0)) # NOT TESTED
 
-        print "startReadout = " + str(sbig.startReadout(0)) # NOT TESTED
+        #print "readoutLine = " + str(sbig.readoutLine(0)) # NOT TESTED
 
-        print "readoutLine = " + str(sbig.readoutLine(0)) # NOT TESTED
+        #print "endReadout = " + str(sbig.endReadout(0)) # NOT TESTED
 
-        print "endReadout = " + str(sbig.endReadout(0)) # NOT TESTED
 
-        sbig.closeDevice() # Not tested
-        sbig.closeDriver() # Not tested
+        # Starting observation...
+
+        print " startExposure = " \
+              + str(sbig.startExposure(sbig.imaging, 60*100, sbig_constants.SHUTTER_COMMAND.SC_OPEN_SHUTTER))
+
+        time.sleep(5)
+
+        print " endExposure = " + str(sbig.endExposure(sbig.imaging))
+
+        print " startReadout = " + str(sbig.startReadout(sbig.imaging))
+
+        readout_mode = sbig.readoutModes[sbig.imaging][sbig_constants.READOUT_BINNING_MODE.RM_1X1]
+
+        # attributes = vars(readout_mode)
+        # print ', '.join("%s: %s" % item for item in attributes.items())
+
+
+        img = numpy.zeros((readout_mode.height, readout_mode.width))  # TODO: Check -- Height x Width?
+
+        heigth = readout_mode.height
+
+        for i_line in range(heigth):  # CCD number of lines is the height.
+            img[i_line] = sbig.readoutLine(sbig.imaging)
+
+        try:
+            os.unlink('test.fits')
+        except OSError:
+            pass
+
+        fits.writeto('test.fits', img)
+
+        print " endReadout = " + str(sbig.endReadout(sbig.imaging))
 
     except SBIGException, e:
         print "SBIGException: " + e.message
     finally:
-        print "Finally block."
-        print "closeDevice = " + str(sbig.closeDevice())
-        print "closeDriver = " + str(sbig.closeDriver())
+        print "=> Finally block."
+        print " closeDevice = " + str(sbig.closeDevice())
+        print " closeDriver = " + str(sbig.closeDriver())
 
 
 
 
 '''
-On the works
+ERROR
 ============
--
+setFilterPosition
 
 OK
 ==========================
@@ -913,28 +958,21 @@ startFan
 stopFan
 isFanning
 isLinked
-queryDriverInfo
-setTemperature
 
-Implemented but not tested
-==========================
-queryCCDInfo - Not able to test.
+setTemperature
 getFilterStatus
 getFilterPosition
-setFilterPosition
+
+queryCCDInfo
+queryDriverInfo
 queryUSB
+
 startExposure
 endExposure
+
 endReadout
 startReadout
 readoutLine
 exposing
 
-
-
-
-
-Not Implemented Yet
-===================
--
 '''
