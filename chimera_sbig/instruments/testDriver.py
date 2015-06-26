@@ -1,24 +1,17 @@
 #!/usr/bin/env python
 
-import math
-
 import numpy
 import time
 import logging
 log = logging.getLogger(__name__)
 
-from chimera.core.exceptions import ChimeraException
-from chimera.interfaces.camera import ReadoutMode
 
-import ctypes
 import os
-import sys
 
 from astropy.io import fits
 
-from ctypes import Structure, c_ushort, c_ulong, POINTER, c_char, byref, c_double
 
-import sbig_structures, sbig_constants
+import sbig_constants
 
 import sbigdrv
 
@@ -59,34 +52,30 @@ if __name__ == '__main__':
 
         # print "setTemperature = " + str(sbig.setTemperature(regulation=True, setpoint=-15, autofreeze=True)) #OK
 
+        # print " queryCCDInfo = " + str(sbig.queryCCDInfo()) # OK
 
-        #print " queryCCDInfo = " + str(sbig.queryCCDInfo()) # OK
+        # print "getFilterStatus = " + str(sbig.getFilterStatus()) # OK
 
-        #print "getFilterStatus = " + str(sbig.getFilterStatus()) # OK
-
-        #print "getFilterPosition = " + str(sbig.getFilterPosition()) # OK
+        # print "getFilterPosition = " + str(sbig.getFilterPosition()) # OK
 
         # print "setFilterPosition = " + str(sbig.setFilterPosition(sbig_constants.CFW_POSITION.CFWP_1)) # SEGMENTATION FAULT
 
+        # print "startExposure = " + str(sbig.startExposure(0, 10, 0)) # NOT TESTED
 
+        # print "endExposure = " + str(sbig.endExposure(0)) # NOT TESTED
 
-        #print "startExposure = " + str(sbig.startExposure(0, 10, 0)) # NOT TESTED
+        # print "startReadout = " + str(sbig.startReadout(0)) # NOT TESTED
 
-        #print "endExposure = " + str(sbig.endExposure(0)) # NOT TESTED
+        # print "readoutLine = " + str(sbig.readoutLine(0)) # NOT TESTED
 
-        #print "startReadout = " + str(sbig.startReadout(0)) # NOT TESTED
-
-        #print "readoutLine = " + str(sbig.readoutLine(0)) # NOT TESTED
-
-        #print "endReadout = " + str(sbig.endReadout(0)) # NOT TESTED
-
+        # print "endReadout = " + str(sbig.endReadout(0)) # NOT TESTED
 
         # Starting observation...
 
         print " startExposure = " \
               + str(sbig.startExposure(sbig.imaging, 60*100, sbig_constants.SHUTTER_COMMAND.SC_OPEN_SHUTTER))
 
-        time.sleep(5)
+        time.sleep(60)
 
         print " endExposure = " + str(sbig.endExposure(sbig.imaging))
 
@@ -96,7 +85,6 @@ if __name__ == '__main__':
 
         # attributes = vars(readout_mode)
         # print ', '.join("%s: %s" % item for item in attributes.items())
-
 
         img = numpy.zeros((readout_mode.height, readout_mode.width))  # TODO: Check -- Height x Width?
 
@@ -114,7 +102,7 @@ if __name__ == '__main__':
 
         print " endReadout = " + str(sbig.endReadout(sbig.imaging))
 
-    except SBIGException, e:
+    except sbigdrv.SBIGException, e:
         print "SBIGException: " + e.message
     finally:
         print "=> Finally block."
@@ -151,12 +139,6 @@ queryUSB
 startExposure
 endExposure
 
-
-
-Implemented but not tested
-==========================
-
-
 endReadout
 startReadout
 readoutLine
@@ -164,9 +146,4 @@ exposing
 
 
 
-
-
-Not Implemented Yet
-===================
--
 '''
