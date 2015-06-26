@@ -25,7 +25,8 @@ import time
 import datetime as dt
 import numpy as N
 
-from chimera.instruments.sbig.sbigdrv import (SBIGDrv, SBIGException)
+
+from chimera_sbig.instruments.sbigdrv import SBIGDrv, SBIGException
 
 from chimera.interfaces.camera import (
     CCD, CameraFeature, Shutter, CameraStatus)
