@@ -740,7 +740,8 @@ class SBIGDrv(object):
         self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cfwp), POINTER(cfwr)]
 
         cfwp = cfwp(cfwModel=sbig_constants.CFW_MODEL_SELECT.CFWSEL_CFW8,
-                    cfwCommand=sbig_constants.CFW_COMMAND.CFWC_GOTO, cfwParam1=position)
+                    cfwCommand=sbig_constants.CFW_COMMAND.CFWC_GOTO,
+                    cfwParam1=position, inPtr=None, inLength=0, outPtr=None)
 
         cfwr = cfwr()
 
@@ -828,12 +829,18 @@ class SBIGDrv(object):
 
     def _status(self, cmd):
 
-        qcsp = self._driver.QueryCommandStatusParams()
-        qcsr = self._driver.QueryCommandStatusResults()
-        qcsp.command = cmd
+        qcsp = sbig_structures.QueryCommandStatusParams
+        qcsr = sbig_structures.QueryCommandStatusResults
 
-        if not self._cmd(sbig_constants.CC_QUERY_COMMAND_STATUS, qcsp, qcsr):
-            return False
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(qcsp), POINTER(qcsr)]
 
-        return qcsr.status
+        qcsp = qcsp(command=cmd)
+        qcsr = qcsr()
 
+        ret = self._driver.SBIGUnivDrvCommand(
+            sbig_constants.PAR_COMMAND.CC_QUERY_COMMAND_STATUS, byref(qcsp), byref(qcsr))
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return qcsr.status
+        else:
+            raise self._error(ret)
