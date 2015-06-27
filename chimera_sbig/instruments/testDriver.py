@@ -16,7 +16,7 @@ import sbig_constants
 import sbigdrv
 
 
-testExposure = True
+testExposure = False
 
 
 if __name__ == '__main__':
@@ -43,7 +43,7 @@ if __name__ == '__main__':
         print " isLinked = " + str(sbig.isLinked())
 
         # fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature
-        # print "getTemperature = (fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature) -> " + str(tuple(sbig.getTemperature(ccd=True))) #OK
+        print "getTemperature = (fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature) -> " + str(tuple(sbig.getTemperature(ccd=True))) #OK
 
         # print "startFan = " + str(sbig.startFan()) #OK
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
         # print "stopFan = " + str(sbig.stopFan()) #OK
 
-        # print "setTemperature = " + str(sbig.setTemperature(regulation=True, setpoint=-15, autofreeze=True)) #OK
+        # print "setTemperature = " + str(sbig.setTemperature(regulation=True, setpoint=-15, autofreeze=False)) #OK
 
         # print " queryCCDInfo = " + str(sbig.queryCCDInfo()) # OK
 

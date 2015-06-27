@@ -70,6 +70,10 @@ class PAR_COMMAND(IntEnum):
     CC_QUERY_ETHERNET = 49
     CC_START_EXPOSURE2 = 50
 
+    '''
+    CC_SET_TEMPERATURE_REGULATION2 is not documented!
+    '''
+    CC_SET_TEMPERATURE_REGULATION2 = 51
 
 class PAR_ERROR(IntEnum):
     """

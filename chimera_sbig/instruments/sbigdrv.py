@@ -562,10 +562,10 @@ class SBIGDrv(object):
         :return:
         '''
 
-        tempRegulation = sbig_constants.TEMPERATURE_REGULATION.REGULATION_ON
-
-        if regulation is False:
-            tempRegulation = sbig_constants.TEMPERATURE_REGULATION.REGULATION_OFF
+        if regulation is True:
+            tempRegulation = sbig_constants.TEMPERATURE_REGULATION.REGULATION_ON
+        else:
+            tempRegulation  = sbig_constants.TEMPERATURE_REGULATION.REGULATION_OFF
 
         strp = sbig_structures.SetTemperatureRegulationParams2
 
@@ -576,7 +576,7 @@ class SBIGDrv(object):
         strp = strp(regulation=tempRegulation, ccdSetpoint=setpoint)
 
         # First call must set temperature parameters
-        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_SET_TEMPERATURE_REGULATION, byref(strp), None)
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_SET_TEMPERATURE_REGULATION2, byref(strp), None)
 
         if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR and autofreeze is False:
             return True
@@ -591,7 +591,7 @@ class SBIGDrv(object):
             strp = strp(regulation=sbig_constants.TEMPERATURE_REGULATION.REGULATION_ENABLE_AUTOFREEZE)
 
             # Second call sets the Freezing
-            ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_SET_TEMPERATURE_REGULATION, byref(strp), None)
+            ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_SET_TEMPERATURE_REGULATION2, byref(strp), None)
 
             if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
                 return True
