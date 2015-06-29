@@ -46,9 +46,6 @@ class SBIGReadoutMode(ReadoutMode):
 class SBIGDrv(object):
 
     # Constants
-    imaging = sbig_constants.CCD_REQUEST.CCD_IMAGING
-    tracking = sbig_constants.CCD_REQUEST.CCD_TRACKING
-
     lpt1 = sbig_constants.SBIG_DEVICE_TYPE.DEV_LPT1
     lpt2 = sbig_constants.SBIG_DEVICE_TYPE.DEV_LPT2
     lpt3 = sbig_constants.SBIG_DEVICE_TYPE.DEV_LPT3
@@ -58,12 +55,23 @@ class SBIGDrv(object):
     usb3 = sbig_constants.SBIG_DEVICE_TYPE.DEV_USB3
     usb4 = sbig_constants.SBIG_DEVICE_TYPE.DEV_USB4
 
+    imaging = sbig_constants.CCD_REQUEST.CCD_IMAGING
+    tracking = sbig_constants.CCD_REQUEST.CCD_TRACKING
+
+    openShutter = sbig_constants.SHUTTER_COMMAND.SC_OPEN_SHUTTER
+    closeShutter = sbig_constants.SHUTTER_COMMAND.SC_CLOSE_SHUTTER
+    leaveShutter = sbig_constants.SHUTTER_COMMAND.SC_LEAVE_SHUTTER
+
+    readoutModes = {imaging: {},
+                    tracking: {}}
+
+    cameraNames = {}
+
     filters = {1: sbig_constants.CFW_POSITION.CFWP_1,
                2: sbig_constants.CFW_POSITION.CFWP_2,
                3: sbig_constants.CFW_POSITION.CFWP_3,
                4: sbig_constants.CFW_POSITION.CFWP_4,
                5: sbig_constants.CFW_POSITION.CFWP_5}
-
 
     # private
     _imgIdle = 0x0
@@ -72,11 +80,6 @@ class SBIGDrv(object):
     _trkIdle = 0x0
     _trkInProgress = 0x8
     _trkComplete = 0xc
-
-    readoutModes = {imaging: {},
-                    tracking: {}}
-
-    cameraNames = {}
 
     def __init__(self):
         if sys.platform.startswith('linux'):
