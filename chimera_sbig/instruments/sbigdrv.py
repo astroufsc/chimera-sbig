@@ -88,10 +88,10 @@ class SBIGDrv(object):
             import platform
 
             bits, linkage = platform.architecture()
-            if bits.beginswith('32'):
+            if bits.startswith('32'):
                 self._driver = ctypes.windll.LoadLibrary('sbigudrv.dll')
             else:
-                print 'Invalid Python distribution. Should be 32bits.'
+                raise SBIGException(-999, 'Invalid Python distribution. Should be 32bits.')
 
     def openDriver(self):
         '''
