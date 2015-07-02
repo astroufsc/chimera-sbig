@@ -28,22 +28,22 @@ if __name__ == '__main__':
         print " openDriver = " + str(sbig.openDriver())
 
         # print "queryUSB => "
-
+        #
         # cams = sbig.queryUSB() # OK
-
+        #
         # for cam in cams:
-        #    print cam
+        #     print cam
 
         print " openDevice = " + str(sbig.openDevice(1))
 
-        # print "queryDriverInfo = (version, name, maxRequest) -> " + str(tuple(sbig.queryDriverInfo())) # OK
+        print "queryDriverInfo = (version, name, maxRequest) -> " + str(tuple(sbig.queryDriverInfo())) # OK
 
         print " establishLink = " + str(sbig.establishLink())
 
         print " isLinked = " + str(sbig.isLinked())
 
         # fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature
-        print "getTemperature = (fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature) -> " + str(tuple(sbig.getTemperature(ccd=True))) #OK
+        # print "getTemperature = (fanEnabled, fanPower, ccdSetpoint, imagingCCDTemperature) -> " + str(tuple(sbig.getTemperature(ccd=True))) #OK
 
         # print "startFan = " + str(sbig.startFan()) #OK
 
@@ -53,13 +53,21 @@ if __name__ == '__main__':
 
         # print "setTemperature = " + str(sbig.setTemperature(regulation=True, setpoint=-15, autofreeze=False)) #OK
 
-        # print " queryCCDInfo = " + str(sbig.queryCCDInfo()) # OK
+        print " queryCCDInfo = " + str(sbig.queryCCDInfo()) # OK
 
-        # print "getFilterStatus = " + str(sbig.getFilterStatus()) # OK
+        print " getFilterInfo = " + str(sbig.getFilterInfo())
+
+        print " self.cameraNames = " + str(sbig.cameraNames[sbig.imaging]) # OK
+
+
+        print " self.FilterConfigString = " + sbig.getFilterConfigString()
+
+
+        print "getFilterStatus = " + str(sbig.getFilterStatus()) # OK
 
         # print "getFilterPosition BEFORE = " + str(sbig.getFilterPosition()) # OK
 
-        # print "setFilterPosition = " + str(sbig.setFilterPosition(sbig_constants.CFW_POSITION.CFWP_1)) # SEGMENTATION FAULT
+        print "setFilterPosition = " + str(sbig.setFilterPosition(sbig_constants.CFW_POSITION.CFWP_1))
 
         # print "startExposure = " + str(sbig.startExposure(0, 10, 0)) # NOT TESTED
 

@@ -82,10 +82,14 @@ class SBIG(CameraBase, FilterWheelBase):
 
     def __start__(self):
 
+        ccd_config = ""
+
         if self['ccd'] == CCD.IMAGING:
             self.ccd = SBIGDrv.imaging
+            ccd_config = "IMAGING"
         else:
             self.ccd = SBIGDrv.tracking
+            ccd_config = "TRACKING"
 
         self.open(self.dev)
 
@@ -95,6 +99,19 @@ class SBIG(CameraBase, FilterWheelBase):
         self.startFan()
 
         self["camera_model"] = self.drv.cameraNames[self.ccd]
+
+        self.__config__.update(
+            {"device": "USB",
+             "ccd": ccd_config,
+             "camera_model": self.drv.cameraNames[self.ccd],
+             "INSTRUME": self.drv.cameraNames[self.ccd],
+             "ccd_model": self.drv.ccdModel,
+             "temp_delta": None,
+             "ccd_saturation_level": None,
+             "telescope_focal_length": None,  # milimeter
+             "filter_wheel_model": self.drv.filterModel,
+             "filters": self.drv.getFilterConfigString()  # space separated filter names (in position # order)
+             })
 
     def __stop__(self):
         try:

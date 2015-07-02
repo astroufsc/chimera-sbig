@@ -73,6 +73,25 @@ class SBIGDrv(object):
                4: sbig_constants.CFW_POSITION.CFWP_4,
                5: sbig_constants.CFW_POSITION.CFWP_5}
 
+    # From sbig_constants.CFW_POSITION
+    filter_wheel_names = [
+        "CFWP_UNKNOWN",
+        "CFWP_1",
+        "CFWP_2",
+        "CFWP_3",
+        "CFWP_4",
+        "CFWP_5",
+        "CFWP_6",
+        "CFWP_7",
+        "CFWP_8",
+        "CFWP_9",
+        "CFWP_10" ]
+
+
+
+    filterModel = "unknown"
+    ccdModel = "unknown"
+
     # private
     _imgIdle = 0x0
     _imgInProgress = 0x2
@@ -166,7 +185,7 @@ class SBIGDrv(object):
                 raise self._error(ret)
 
         except SBIGException, e:
-            if e.code == sbig_constants.CE_DEVICE_NOT_CLOSED:
+            if e.code == sbig_constants.PAR_ERROR.CE_DEVICE_NOT_CLOSED:
                 # device already open (are you trying to use the tracking ccd?)
                 return True
             else:
@@ -718,6 +737,31 @@ class SBIGDrv(object):
         else:
             raise self._error(ret)
 
+    def getFilterInfo(self):
+        '''
+        Returns Filter Wheel info. Library command: CFWC_GET_INFO
+        See driver doc page 23.
+        :return: Firmware version, number of filters
+        '''
+        cfwp = sbig_structures.CFWParams
+        cfwr = sbig_structures.CFWResults
+
+        self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cfwp), POINTER(cfwr)]
+
+        cfwp = cfwp(cfwModel=sbig_constants.CFW_MODEL_SELECT.CFWSEL_CFW8,
+                    cfwCommand=sbig_constants.CFW_COMMAND.CFWC_GET_INFO,
+                    cfwParam1=sbig_constants.CFW_GETINFO_SELECT.CFWG_FIRMWARE_VERSION)
+
+        cfwr = cfwr()
+
+        ret = self._driver.SBIGUnivDrvCommand(sbig_constants.PAR_COMMAND.CC_CFW, byref(cfwp), byref(cfwr))
+
+        if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
+            return cfwr.cfwResult1, cfwr.cfwResult2
+        else:
+            raise self._error(ret)
+
+
     # filter wheel
     def getFilterPosition(self):
         '''
@@ -783,7 +827,8 @@ class SBIGDrv(object):
 
         self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(cfwp), POINTER(cfwr)]
 
-        cfwp = cfwp(cfwModel=sbig_constants.CFW_MODEL_SELECT.CFWSEL_CFW8, cfwCommand=sbig_constants.CFW_COMMAND.CFWC_QUERY)
+        cfwp = cfwp(cfwModel=sbig_constants.CFW_MODEL_SELECT.CFWSEL_CFW8,
+                    cfwCommand=sbig_constants.CFW_COMMAND.CFWC_QUERY)
 
         cfwr = cfwr()
 
@@ -791,8 +836,16 @@ class SBIGDrv(object):
 
         if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
             return cfwr.cfwStatus
+            #return cfwr
         else:
             raise self._error(ret)
+
+    def getFilterConfigString(self):
+
+        firmwareVersion, numberFilters = self.getFilterInfo()
+
+        return " ".join(self.filter_wheel_names[1:numberFilters + 1])
+
 
     def _cmd(self, ccc, cin, cout):
 
@@ -828,6 +881,8 @@ class SBIGDrv(object):
     def _error(self, errorNo):
 
         # log.error('Got a problem here! Dumping error params')
+
+        # print "errorNo = " + str(errorNo)
 
         gesp = sbig_structures.GetErrorStringParams
         gesr = sbig_structures.GetErrorStringResults
