@@ -656,7 +656,7 @@ class SBIGDrv(object):
             sbig_constants.PAR_COMMAND.CC_QUERY_TEMPERATURE_STATUS, byref(qsp), byref(qtsr))
 
         if ret == sbig_constants.PAR_ERROR.CE_NO_ERROR:
-            return (qtsr.fanEnabled,
+            return (qtsr.coolingEnabled,
                     (qtsr.fanPower / 255.0) * 100.0,
                     qtsr.ccdSetpoint,
                     qtsr.imagingCCDTemperature)

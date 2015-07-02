@@ -55,8 +55,6 @@ class SBIG(CameraBase, FilterWheelBase):
         self.lastFrameTemp = None
         self.lastFrameFilename = ""
 
-        self._isFanning = False
-
         self.setHz(1.0 / 5)
 
         self._supports = {CameraFeature.TEMPERATURE_CONTROL: True,
@@ -96,8 +94,6 @@ class SBIG(CameraBase, FilterWheelBase):
 
         # make sure filter wheel is in the right position
         self.setFilter(self.getFilters()[0])
-        self.startCooling(self.getSetPoint())
-        self.startFan()
 
         self["camera_model"] = self.drv.cameraNames[self.ccd]
         self["filter_wheel_model"] = self.drv.filterModel
@@ -155,15 +151,13 @@ class SBIG(CameraBase, FilterWheelBase):
     @lock
     def startFan(self, rate=None):
         self.drv.startFan()
-        self._isFanning = True
 
     @lock
     def stopFan(self):
         self.drv.stopFan()
-        self._isFanning = False
 
     def isFanning(self):
-        return self._isFanning
+        return self.drv.isFanning()
 
     def getFilter(self):
         # SBIG support for this is very poor, we just keep track mannualy
