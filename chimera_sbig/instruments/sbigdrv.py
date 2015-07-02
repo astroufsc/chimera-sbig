@@ -87,8 +87,6 @@ class SBIGDrv(object):
         "CFWP_9",
         "CFWP_10" ]
 
-
-
     filterModel = "unknown"
     ccdModel = "unknown"
 
