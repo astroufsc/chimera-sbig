@@ -1,4 +1,4 @@
-chimera_sbig plugin
+chimera-sbig plugin
 ===================
 
 A chimera_ plugin for `Santa Barbara Instrument Group`_ cameras and filter wheels.
@@ -24,7 +24,7 @@ There is a package on Ubuntu Server 14.04.2 which installs it:
 Then, install the plugin running:
 ::
 
-    pip install -U git+https://github.com/astroufsc/chimera_sbig.git
+    pip install -U git+https://github.com/astroufsc/chimera-sbig.git
 
 This plugin works both on Windows and Linux. For Windows installation, make sure that you have a **32bit** Pyhton
 distribution and the latest drivers which can be downloaded from the SBIG website http://www.sbig.com/support/software/
@@ -56,7 +56,7 @@ For more information, contact us on chimera's discussion list:
 https://groups.google.com/forum/#!forum/chimera-discuss
 
 Bug reports and patches are welcome and can be sent over our GitHub page:
-https://github.com/astroufsc/chimera_sbig/
+https://github.com/astroufsc/chimera-sbig/
 
 
 .. _Santa Barbara Instrument Group: http://www.sbig.com/
