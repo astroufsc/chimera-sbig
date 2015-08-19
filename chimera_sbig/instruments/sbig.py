@@ -60,7 +60,7 @@ class SBIG(CameraBase, FilterWheelBase):
         self._supports = {CameraFeature.TEMPERATURE_CONTROL: True,
                           CameraFeature.PROGRAMMABLE_GAIN: False,
                           CameraFeature.PROGRAMMABLE_OVERSCAN: False,
-                          CameraFeature.PROGRAMMABLE_FAN: False,
+                          CameraFeature.PROGRAMMABLE_FAN: True,
                           CameraFeature.PROGRAMMABLE_LEDS: True,
                           CameraFeature.PROGRAMMABLE_BIAS_LEVEL: False}
 
