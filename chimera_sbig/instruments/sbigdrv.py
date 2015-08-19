@@ -427,10 +427,10 @@ class SBIGDrv(object):
             raise ValueError("Invalid pixel start")
 
         if (line[1] < 0 or line[1] > readoutMode.width):
-            raise ValueError("Invalid pixel lenght")
+            raise ValueError("Invalid pixel length")
 
         rolp = sbig_structures.ReadoutLineParams
-        rolr = c_ushort * readoutMode.width
+        rolr = c_ushort * line[1]
 
         self._driver.SBIGUnivDrvCommand.argtypes = [c_ushort, POINTER(rolp), POINTER(rolr)]
 
